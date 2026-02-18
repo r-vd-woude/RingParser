@@ -40,7 +40,7 @@ RingParser/
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.14+
 - [uv](https://github.com/astral-sh/uv) (modern Python package/dependency manager)
 
 ### Installation
@@ -60,7 +60,7 @@ python -m venv venv
 3. Install dependencies:
 
 ```bash
-uv pip install -r backend/requirements.lock
+uv pip install -r requirements.txt
 ```
 
 ## Running the Application
