@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RingParser - XML Mapper</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RingParser</h1>
+            <p class="subtitle" id="subtitle-text">Map files to XSD schema for Griel Bulkupload</p>
+        </header>
+
+        <main>
+            <!-- Step 1: File Upload -->
+            <section id="upload-section" class="card">
+                <h2>Step 1: Upload File</h2>
+                <div id="upload-area" class="upload-area">
+                    <input type="file" id="file-input" accept=".csv,.xlsx" hidden>
+                    <div class="upload-prompt">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p id="upload-prompt-text">Drag and drop your file here</p>
+                        <button id="browse-btn" class="btn btn-secondary">Browse Files</button>
+                    </div>
+                </div>
+                <div id="file-info" class="file-info hidden">
+                    <div class="file-details">
+                        <span id="file-name"></span>
+                        <span id="file-size"></span>
+                    </div>
+                    <div class="file-actions">
+                        <button id="change-file-btn" class="btn btn-secondary">Change File</button>
+                        <button id="parse-btn" class="btn btn-primary">Parse File</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: Column Mapping -->
+            <section id="mapping-section" class="card hidden">
+                <h2>Step 2: Map Columns to Schema</h2>
+                <p class="mapping-instructions_1">
+                    Select the target fields from the XSD schema
+                    and map them to the columns in your uploaded file.
+                </p>
+                <p class="mapping-instructions_2">
+                    Fields in <span class="text-error">red</span> with an * are required while white fields are optional.
+                    You can also add biometric data if you have that.
+                </p>
+                <p class="mapping-instructions_3">
+                    The mapper will automatically detect names similar to the target fields and suggest mappings, but you can change them manually if needed.
+                    On the right side of mapping interface, you will see a button with "✓ View sample".
+                    Clicking that will show you what data is in the first few rows of the selected column.
+                </p>    
+                <div id="mapping-controls" class="mapping-controls">
+                    <span id="mapping-status"></span>
+                </div>
+                <div id="target-fields" class="column-list"></div>
+                <div id="biometrics-container" class="hidden">
+                    <h3 class="biometrics-header">Biometrics</h3>
+                    <div id="biometrics-fields" class="column-list"></div>
+                </div>
+            </section>
+
+            <!-- Step 3: Validation -->
+            <section id="validation-section" class="card hidden">
+                <h2>Step 3: Validate Data</h2>
+                <p class="validation-instructions">
+                    Validate your mapping against the XSD schema. 
+                    This will check for required fields, data types, and any inconsistencies.
+                </p>
+                <button id="validate-btn" class="btn btn-primary">Validate Mapping</button>
+                <div id="validation-results" class="validation-results">
+                    <p class="placeholder">Validation results will appear here</p>
+                </div>
+            </section>
+
+            <!-- Step 4: Generate XML -->
+            <section id="generate-section" class="card hidden">
+                <h2>Step 4: Generate XML</h2>
+                <p class="generate-instructions">
+                    Once your mapping is validated, you can generate the XML file. 
+                    You can preview the generated XML before downloading it.
+                </p>
+                <p class="download-instructions">
+                    If you uploaded a file with more than 1000 records, multiple XML files will be generated.
+                    Each file will contain up to 1000 records.
+                    You can download all generated XML files as a ZIP archive.
+                </p>
+                <button id="generate-btn" class="btn btn-primary" disabled>Generate XML</button>
+                <div id="xml-preview" class="xml-preview hidden">
+                    <h3>XML Preview</h3>
+                    <pre id="xml-content"></pre>
+                    <button id="download-btn" class="btn btn-success">Download XML</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>RingParser - Ronald van der Woude</p>
+        </footer>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loading-message">Loading...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/app.js" type="module"></script>
+</body>
+</html>
