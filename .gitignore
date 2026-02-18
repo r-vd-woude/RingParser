@@ -39,6 +39,7 @@ data/outputs/*
 .pytest_cache/
 .coverage
 htmlcov/
+local_test/
 
 # Plans
 .claude/

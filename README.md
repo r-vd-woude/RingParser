@@ -49,13 +49,13 @@ RingParser/
 
 ```bash
 cd backend
-python -m venv venv
+uv venv .venv
 ```
 
 2. Activate virtual environment:
 
-- Windows: `venv\Scripts\activate`
-- Linux/Mac: `source venv/bin/activate`
+- Windows: `.venv\Scripts\activate`
+- Linux/Mac: `source .venv/bin/activate`
 
 3. Install dependencies:
 
