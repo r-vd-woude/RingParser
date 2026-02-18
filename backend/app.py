@@ -16,7 +16,7 @@ from backend.api import routes
 async def lifespan(app: FastAPI):
     """
     Manage application lifecycle events (startup and shutdown hooks)
-    
+
     This context manager handles initialization and cleanup tasks for the application.
     Code before yield runs on startup, code after yield runs on shutdown.
     """
@@ -27,13 +27,14 @@ async def lifespan(app: FastAPI):
     # Shutdown: Log cleanup message
     print("RingParser application shutting down")
 
+
 # ============================================================================
 # FastAPI Application Initialization
 # ============================================================================
 
 app = FastAPI(
     title="RingParser",
-    description="Web application for mapping CSV/XML files to XSD schema and generating XML output",
+    description="Web application for mapping files to XSD schema and generating XML output",
     version="1.0.0",
     lifespan=lifespan,
 )

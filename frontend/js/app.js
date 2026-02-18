@@ -66,7 +66,10 @@ async function loadSupportedExtensions() {
         appState.supportedExtensions = data.supported_extensions;  // e.g. ['.csv', '.xlsx']
         // Keep the file input and prompt text in sync with the registry
         elements.fileInput.accept = appState.supportedExtensions.join(',');
-        const label = appState.supportedExtensions.map(e => e.toUpperCase().slice(1)).join(' or ');
+        const exts = appState.supportedExtensions.map(e => e.toUpperCase().slice(1));
+        const label = exts.length > 1
+            ? exts.slice(0, -1).join(', ') + ' or ' + exts.at(-1)
+            : exts[0] ?? '';
         document.getElementById('upload-prompt-text').textContent = `Drag and drop your ${label} file here`;
         document.getElementById('subtitle-text').textContent = `Map ${label} files to XSD schema for Griel Bulkupload`;
         document.title = `RingParser - ${label} to XSD Mapper`;
