@@ -41,7 +41,7 @@ RingParser/
 ### Prerequisites
 
 - Python 3.14+
-- [uv](https://github.com/astral-sh/uv) (modern Python package/dependency manager)
+- [uv](https://github.com/astral-sh/uv) (package manager)
 
 ### Installation
 
