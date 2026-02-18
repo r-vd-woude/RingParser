@@ -111,10 +111,6 @@ The application uses the "Griel bulkupload XSD schema" [bulkimportnew.xsd.xml](d
 
 Data needs to be entered in the EURING standard format [EURING2000 Exchange Code](https://euring.org/files/documents/E2020ExchangeCodeV202.pdf)
 
-## License
-
-Project for EURING BirdRinging Data Format
-
 ## Contributing
 
 This project is in active development.
