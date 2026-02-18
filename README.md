@@ -77,17 +77,21 @@ The application will start on http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 - API Base URL: http://localhost:8000/api
 
+## Supported files
+
+Currently supported files can be found in [parser_registry.py](/backend/services/parser_registry.py).
+
 ## API Endpoints
 
 - `GET /api/health` - Health check
 - `POST /api/schema/parse` - Parse XSD schema
-- `POST /api/file/upload` - Upload CSV/XML file (Phase 2)
-- `POST /api/file/parse` - Parse uploaded file (Phase 2)
-- `POST /api/mapping/create` - Create column mapping (Phase 3)
-- `POST /api/mapping/suggest` - Auto-suggest mappings (Phase 3)
-- `POST /api/mapping/validate` - Validate data (Phase 4)
-- `POST /api/xml/generate` - Generate XML output (Phase 5)
-- `GET /api/xml/download/{id}` - Download generated XML (Phase 5)
+- `POST /api/file/upload` - Upload file
+- `POST /api/file/parse` - Parse uploaded file
+- `POST /api/mapping/create` - Create column mapping
+- `POST /api/mapping/suggest` - Auto-suggest mappings
+- `POST /api/mapping/validate` - Validate data
+- `POST /api/xml/generate` - Generate XML output
+- `GET /api/xml/download/{id}` - Download generated XML
 
 ## Development
 
