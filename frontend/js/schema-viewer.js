@@ -106,7 +106,7 @@ export async function loadSchema(appState, elements) {
     const schema = await response.json();
     appState.schemaFields = schema.fields;
 
-    elements.schemaSection.classList.add('hidden');
+//    elements.schemaSection.classList.add('hidden');
     await autoMapFields(appState, elements);
 }
 
