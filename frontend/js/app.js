@@ -1,7 +1,7 @@
 // Main application logic
 import { setupFileUpload } from './file-upload.js';
 import { setupColumnMapper } from './column-mapper.js';
-import { setupSchemaViewer } from './schema-viewer.js';
+import { setupSchemaViewer, setupSchemaSelector } from './schema-viewer.js';
 import { setupXmlGenerator } from './xml-generator.js';
 
 const API_BASE = '/api';
@@ -11,6 +11,7 @@ const appState = {
     uploadedFile: null,
     fileId: null,
     fileType: null,
+    selectedSchemaId: null,  // populated after Step 2
     sourceColumns: [],
     schemaFields: [],
     mappings: {},
@@ -30,6 +31,12 @@ const elements = {
     fileSize: document.getElementById('file-size'),
     changeFileBtn: document.getElementById('change-file-btn'),
     parseBtn: document.getElementById('parse-btn'),
+
+    schemaSection: document.getElementById('schema-section'),
+    schemaList: document.getElementById('schema-list'),
+    schemaFileInput: document.getElementById('schema-file-input'),
+    schemaUploadStatus: document.getElementById('schema-upload-status'),
+    useSchemaBtn: document.getElementById('use-schema-btn'),
 
     mappingSection: document.getElementById('mapping-section'),
     mappingControls: document.getElementById('mapping-controls'),
@@ -66,13 +73,13 @@ async function loadSupportedExtensions() {
         appState.supportedExtensions = data.supported_extensions;  // e.g. ['.csv', '.xlsx']
         // Keep the file input and prompt text in sync with the registry
         elements.fileInput.accept = appState.supportedExtensions.join(',');
-        const exts = appState.supportedExtensions.map(e => e.toUpperCase().slice(1));
+        const exts = appState.supportedExtensions.map(e => e.toLowerCase().slice(1));
         const label = exts.length > 1
             ? exts.slice(0, -1).join(', ') + ' or ' + exts.at(-1)
             : exts[0] ?? '';
         document.getElementById('upload-prompt-text').textContent = `Drag and drop your ${label} file here`;
-        document.getElementById('subtitle-text').textContent = `Map ${label} files to XSD schema for Griel Bulkupload`;
-        document.title = `RingParser - ${label} to XSD Mapper`;
+        document.getElementById('subtitle-text').textContent = `Map ${label} files to an XML XSD schema for Griel Bulkupload`;
+        document.title = `RingParser - ${label} to XSD mapper`;
     } catch (error) {
         console.warn('Could not load supported extensions, falling back to defaults:', error);
         appState.supportedExtensions = ['.csv', '.xlsx'];
@@ -81,16 +88,19 @@ async function loadSupportedExtensions() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // File upload (Phase 2)
+    // File upload (Step 1)
     setupFileUpload(appState, elements);
 
-    // Column mapper (Phase 3)
+    // Schema selector (Step 2)
+    setupSchemaSelector(appState, elements);
+
+    // Column mapper (Step 3)
     setupColumnMapper(appState, elements);
 
-    // Schema viewer (Phase 3)
+    // Schema viewer / validation (Step 4)
     setupSchemaViewer(appState, elements);
 
-    // XML generator (Phase 5)
+    // XML generator (Step 5)
     setupXmlGenerator(appState, elements);
 }
 

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -7,6 +8,7 @@ class GenerateXMLRequest(BaseModel):
     file_id: str
     file_type: str
     mapping_id: str
+    schema_id: Optional[str] = None
 
 
 class GenerateXMLResponse(BaseModel):

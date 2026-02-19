@@ -36,3 +36,4 @@ class ValidateDataRequest(BaseModel):
     file_id: str
     file_type: str
     mapping_id: str
+    schema_id: Optional[str] = None

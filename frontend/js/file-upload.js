@@ -1,5 +1,4 @@
 // File upload and parsing functionality
-import { loadSchema } from './schema-viewer.js';
 
 const API_BASE = '/api';
 
@@ -35,6 +34,7 @@ function resetUpload(appState, elements) {
     elements.fileInfo.classList.add('hidden');
 
     // Hide downstream sections
+    elements.schemaSection.classList.add('hidden');
     elements.mappingSection.classList.add('hidden');
     elements.validationSection.classList.add('hidden');
     elements.generateSection.classList.add('hidden');
@@ -141,8 +141,8 @@ export async function parseFile(appState, elements) {
         const parseData = await parseResponse.json();
         appState.sourceColumns = parseData.columns;
 
-        // Step 3: Load schema and auto-map (throws on failure)
-        await loadSchema(appState, elements);
+        // Step 2: Show schema selection
+        elements.schemaSection.classList.remove('hidden');
 
     } catch (error) {
         window.showError('Error processing file: ' + error.message);

@@ -7,7 +7,7 @@ from fastapi import (
     Body,
 )
 from fastapi.responses import FileResponse
-from typing import List
+from typing import List, Optional
 
 from backend.services.xsd_parser import get_parser
 from backend.services.parser_registry import get_file_parser, supported_extensions
@@ -24,7 +24,7 @@ from backend.models.mapping_model import (
 from backend.models.validation_model import ValidateDataRequest, ValidationResult
 from backend.models.xml_model import GenerateXMLRequest, GenerateXMLResponse
 from backend.utils.file_handler import FileHandler
-from backend.config import OUTPUT_DIR
+from backend.config import OUTPUT_DIR, FORMAT_DIR, XSD_SCHEMA_PATH
 
 router = APIRouter()
 
@@ -41,8 +41,39 @@ async def list_parsers():
     return {"supported_extensions": sorted(supported_extensions())}
 
 
+def _resolve_schema_path(schema_id: Optional[str]) -> Path:
+    """Resolve a schema_id (filename) to a full path, defaulting to the built-in schema."""
+    if schema_id:
+        path = FORMAT_DIR / schema_id
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"Schema '{schema_id}' not found")
+        return path
+    return XSD_SCHEMA_PATH
+
+
+@router.get("/schema/list")
+async def list_schemas():
+    """Return all available XSD schema files from the format directory."""
+    schemas = []
+    for f in sorted(FORMAT_DIR.iterdir()):
+        if f.is_file() and f.suffix in (".xsd", ".xml"):
+            schemas.append({"id": f.name, "name": f.stem, "size": f.stat().st_size})
+    return {"schemas": schemas}
+
+
+@router.post("/schema/upload")
+async def upload_schema(file: UploadFile = File(...)):
+    """Upload a custom XSD schema file to the format directory."""
+    if not file.filename or not (file.filename.endswith(".xsd") or file.filename.endswith(".xml")):
+        raise HTTPException(status_code=400, detail="Only .xsd or .xml files are accepted")
+    dest = FORMAT_DIR / file.filename
+    content = await file.read()
+    dest.write_bytes(content)
+    return {"id": file.filename, "name": Path(file.filename).stem, "size": len(content)}
+
+
 @router.post("/schema/parse", response_model=XSDSchema)
-async def parse_schema():
+async def parse_schema(schema_id: Optional[str] = Body(None, embed=True)):
     """
     Parse the XSD schema file and return structured representation.
 
@@ -50,9 +81,12 @@ async def parse_schema():
         XSDSchema: Complete schema structure with fields, types, and constraints
     """
     try:
-        parser = get_parser()
+        schema_path = _resolve_schema_path(schema_id)
+        parser = get_parser(schema_path)
         schema = parser.parse()
         return schema
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error parsing XSD schema: {str(e)}"
@@ -102,7 +136,7 @@ async def parse_file(
 
     Args:
         file_id: ID of the uploaded file
-        file_type: Type of file (CSV or XLSX)
+        file_type: Type of file
 
     Returns:
         Union[CSVParseResult, XLSXParseResult]: Parsed file data
@@ -126,7 +160,7 @@ async def parse_file(
 
 
 @router.post("/mapping/create", response_model=CreateMappingResponse)
-async def create_mapping(request: CreateMappingRequest):
+async def create_mapping(request: CreateMappingRequest, schema_id: Optional[str] = Body(None, embed=True)):
     """
     Create or update column mapping configuration.
 
@@ -147,7 +181,7 @@ async def create_mapping(request: CreateMappingRequest):
         )
 
         # Get schema to calculate required fields stats
-        parser = get_parser()
+        parser = get_parser(_resolve_schema_path(schema_id))
         schema = parser.parse()
 
         # Count required fields that are mapped
@@ -183,6 +217,7 @@ async def suggest_mapping(
     threshold: float = Body(
         0.5, embed=True, description="Minimum confidence threshold (0.0-1.0)"
     ),
+    schema_id: Optional[str] = Body(None, embed=True),
 ):
     """
     Auto-suggest column mappings based on field names similarity.
@@ -196,7 +231,7 @@ async def suggest_mapping(
     """
     try:
         # Get schema
-        parser = get_parser()
+        parser = get_parser(_resolve_schema_path(schema_id))
         schema = parser.parse()
 
         # Get mapping engine and generate suggestions
@@ -254,7 +289,7 @@ async def validate_mapping(request: ValidateDataRequest):
             )
 
         # Get schema
-        parser = get_parser()
+        parser = get_parser(_resolve_schema_path(request.schema_id))
         schema = parser.parse()
 
         # Validate
@@ -309,7 +344,7 @@ async def generate_xml(request: GenerateXMLRequest):
             )
 
         # Get schema
-        parser = get_parser()
+        parser = get_parser(_resolve_schema_path(request.schema_id))
         schema = parser.parse()
 
         # Generate XML

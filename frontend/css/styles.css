@@ -172,11 +172,39 @@ header h1 {
 }
 
 /* Mapping section */
+
+.mapping-controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: px;
+}
 .mapping-controls {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    allign-items: flex-end;
+    gap: 8px;
+}
+
+/* Ensure mapping-status stays left, buttons right */
+#mapping-status {
+    margin-right: auto;
+}
+.mapping-io {
+    display: flex;
+    gap: 8px;
+}
+
+.biometrics-toggle {
+    margin-left: 8px;
+}
+
+.section-header-bar {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+}
 }
 
 #mapping-status {
@@ -303,12 +331,24 @@ header h1 {
     color: var(--text-secondary);
 }
 
+.fields-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 8px 0 6px;
+    border-top: 2px solid var(--border-color);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* Biometrics toggle button */
 .biometrics-toggle {
     text-align: left;
     background-color: var(--hover-bg);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    margin-top: 8px;
 }
 
 .biometrics-toggle::before {
@@ -478,4 +518,68 @@ footer {
     .card {
         padding: 16px;
     }
+}
+
+.instructions--spaced {
+    margin-top: 1rem;
+}
+
+/* Schema selector (Step 2) */
+.schema-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.schema-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border: 2px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.schema-card:hover {
+    border-color: var(--primary-color, #2196f3);
+    background: var(--hover-bg, #f5f9ff);
+}
+
+.schema-card--selected {
+    border-color: var(--primary-color, #2196f3);
+    background: var(--hover-bg, #f5f9ff);
+    font-weight: 600;
+}
+
+.schema-card__name {
+    font-size: 0.95rem;
+}
+
+.schema-card__size {
+    font-size: 0.8rem;
+    color: var(--text-muted, #888);
+}
+
+.schema-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.schema-upload-label {
+    cursor: pointer;
+}
+
+#schema-upload-status {
+    font-size: 0.85rem;
+    color: var(--text-muted, #888);
+}
+
+.schema-actions {
+    display: flex;
+    justify-content: flex-end;
 }

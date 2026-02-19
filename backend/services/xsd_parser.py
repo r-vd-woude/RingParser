@@ -399,9 +399,12 @@ class XSDParser:
 _parser: Optional[XSDParser] = None
 
 
-def get_parser() -> XSDParser:
-    """Get or create global parser instance"""
+def get_parser(schema_path: Path = XSD_SCHEMA_PATH) -> XSDParser:
+    """Get or create a parser instance, cached per schema path."""
     global _parser
-    if _parser is None:
-        _parser = XSDParser()
-    return _parser
+    if schema_path == XSD_SCHEMA_PATH:
+        # Fast path for the default schema
+        if _parser is None:
+            _parser = XSDParser(schema_path)
+        return _parser
+    return XSDParser(schema_path)

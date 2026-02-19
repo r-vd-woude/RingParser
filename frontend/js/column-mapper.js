@@ -4,8 +4,63 @@ const API_BASE = '/api';
 /**
  * Setup column mapper event listeners
  */
-export function setupColumnMapper() {
-    // Auto-map is triggered programmatically after schema loads
+export function setupColumnMapper(appState, elements) {
+    // Save mapping to JSON file
+    document.getElementById('save-mapping-btn').addEventListener('click', () => {
+        exportMappingToJson(appState);
+    });
+
+    // Load mapping from JSON file
+    document.getElementById('load-mapping-input').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+            importMappingFromJson(json, appState, elements);
+        } catch (err) {
+            window.showError('Failed to load mapping file: ' + err.message);
+        }
+        e.target.value = '';
+    });
+}
+
+function exportMappingToJson(appState) {
+    const output = {
+        schema_id: appState.selectedSchemaId,
+        mappings: {}
+    };
+    Object.entries(appState.mappings).forEach(([targetPath, mapping]) => {
+        output.mappings[targetPath] = {
+            source_column: mapping.source_column,
+            target_name: mapping.target_name
+        };
+    });
+
+    const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mapping.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importMappingFromJson(json, appState, elements) {
+    if (!json.mappings || typeof json.mappings !== 'object') {
+        window.showError('Invalid mapping file: missing "mappings" object.');
+        return;
+    }
+    appState.mappings = {};
+    Object.entries(json.mappings).forEach(([targetPath, mapping]) => {
+        appState.mappings[targetPath] = {
+            source_column: mapping.source_column,
+            target_name: mapping.target_name,
+            confidence: 1.0
+        };
+    });
+    updateMappingDisplay(appState, elements);
+    saveMappingConfiguration(appState);
 }
 
 /**
@@ -80,16 +135,19 @@ export function updateMappingDisplay(appState, elements) {
         );
     });
 
-    // Biometrics — separate scrollable section below the main list
+    // Biometrics — add toggle button to the right in mapping-controls
     if (bioFields.length > 0) {
-        // Recreate toggle button in the controls bar
+        // Remove any existing toggle button
         const existing = elements.mappingControls.querySelector('.biometrics-toggle');
         if (existing) existing.remove();
 
+        // Insert toggle button at the end of .mapping-io
+        const mappingIo = elements.mappingControls.querySelector('.mapping-io');
         const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'btn biometrics-toggle' + (appState.biometricsExpanded ? ' active' : '');
+        toggleBtn.className = 'btn btn-secondary biometrics-toggle' + (appState.biometricsExpanded ? ' active' : '');
         toggleBtn.textContent = 'Add biometric data';
-        elements.targetFields.parentNode.insertBefore(toggleBtn, elements.targetFields.nextSibling);
+        elements.mappingControls.appendChild(toggleBtn);
+        elements.mappingControls.appendChild(elements.mappingStatus); // Move status after the toggle
 
         // Populate the dedicated biometrics field list
         elements.biometricsFields.innerHTML = '';
