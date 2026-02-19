@@ -11,6 +11,8 @@ from backend.models.mapping_model import (
 )
 from backend.models.schema_model import XSDSchema, SchemaField
 
+from backend.config import SYNONYMS, ABBREVIATIONS
+
 
 class MappingEngine:
     """Engine for managing column-to-field mappings"""
@@ -228,23 +230,8 @@ class MappingEngine:
             if source_norm == abbreviation:
                 return 0.85
 
-        # Check common abbreviations
-        abbreviations = {
-            "lat": "latitude",
-            "lon": "longitude",
-            "lng": "longitude",
-            "long": "longitude",
-            "dt": "date",
-            "tm": "time",
-            "addr": "address",
-            "desc": "description",
-            "qty": "quantity",
-            "amt": "amount",
-            "num": "number",
-            "id": "identifier",
-            "coord": "coordinate",
-            "loc": "location",
-        }
+        # Load abbreviations from config
+        abbreviations = ABBREVIATIONS
 
         source_lower = source_norm.lower()
         target_lower = target_norm.lower()
@@ -259,18 +246,9 @@ class MappingEngine:
 
     def _check_semantic_match(self, source: str, target: str) -> float:
         """Check for semantic/domain-specific matches"""
-        # Domain-specific synonyms (bird ringing data)
-        synonyms = {
-            ("ring", "band"): 0.9,
-            ("ringer", "bander"): 0.9,
-            ("ringscheme", "bandingscheme"): 0.9,
-            ("ringnumber", "bandnumber"): 0.9,
-            ("catch", "capture"): 0.85,
-            ("sex", "gender"): 0.8,
-            ("species", "bird"): 0.7,
-            ("date", "day"): 0.7,
-            ("time", "hour"): 0.7,
-        }
+
+        # Load synonyms from config
+        synonyms = SYNONYMS
 
         source_norm = self._normalize_name(source)
         target_norm = self._normalize_name(target)

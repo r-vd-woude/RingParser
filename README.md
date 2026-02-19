@@ -1,21 +1,28 @@
-# Ring Parser - CSV/XML to XSD Mapper
+# Ring Parser - parsing
 
-A web application for mapping CSV/XML files to XSD schema and generating valid XML output for EURING bird ringing data format.
+A web application for mapping files to an XML Schema (XSD) and generating valid XML output based on the selected Schema.
 
 ## Features
 
-- Upload CSV or XML files
-- Parse XSD schema and display fields with constraints
+- Upload files
+- Parse an XML Schema and display fields with constraints
 - Map source columns to target XSD fields interactively
 - Validate mapped data against XSD constraints
 - Generate valid XML output conforming to schema
 
+## Supported files
+
+Currently it supports .csv, xlsx, xls, EURING and Submit.CR-Birding-EURING files ([see registry](backend/services/parser_registry.py)).
+
+## Configuration
+
+Settings related to configuration can be set in [config.py](backend/config.py).
+Currently, these settings are limited, but might be extended in the future.
+
 ## Tech Stack
 
-- **Backend**: Python FastAPI
+- **Backend**: Python
 - **Frontend**: Vanilla JavaScript + HTML/CSS
-- **Data Processing**: lxml, xmlschema, pandas
-- **Deployment**: Local (localhost)
 
 ## Project Structure
 
@@ -30,7 +37,7 @@ RingParser/
 │   ├── css/          # Stylesheets
 │   └── js/           # JavaScript
 ├── data/             # Data files
-│   ├── format/       # XSD schema
+│   ├── format/       # XML Schemas
 │   ├── uploads/      # Uploaded files
 │   └── outputs/      # Generated XML
 └── tests/            # Test files

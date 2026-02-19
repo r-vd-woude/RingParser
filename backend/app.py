@@ -11,6 +11,8 @@ from pathlib import Path
 
 from backend.api import routes
 
+from backend.config import CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,10 +50,10 @@ app = FastAPI(
 # Current settings allow all origins for local development (not recommended for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow requests from any origin
-    allow_credentials=True,  # Allow cookies and credentials in requests
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allow all custom headers
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=CORS_CREDENTIALS,
+    allow_methods=CORS_METHODS,
+    allow_headers=CORS_HEADERS,
 )
 
 

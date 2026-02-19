@@ -1,6 +1,7 @@
 from pathlib import Path
 from backend.services.parser_registry import supported_extensions
 
+
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,7 +34,43 @@ MAX_RETAINED_FILES = 50
 
 # Fields hardcoded in the XML generator — maps field name to its default value.
 # Add new fields here; both the generator and validator derive their behaviour from this.
-HARDCODED_FIELD_NAMES: dict[str, str] = {
+HARDCODED_FIELD_NAMES: dict[str, str | None] = {
     "Modus": "Insert",
     "EURINGCodeIdentifier": "4",
+    "ReportingDate": "set_to_today",
+}
+
+# Settings for CORS
+CORS_ORIGINS = [
+    "*"
+]  # Allow requests from any origin (for local development; restrict in production)
+CORS_CREDENTIALS = True  # Allow cookies and credentials in requests
+CORS_METHODS = ["*"]  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+CORS_HEADERS = ["*"]  # Allow all custom headers
+
+# Domain-specific synonyms for (bird ringing data)
+SYNONYMS = {
+    ("catch", "capture"): 0.85,
+    ("sex", "gender"): 0.8,
+    ("species", "bird"): 0.7,
+    ("date", "day"): 0.7,
+    ("time", "hour"): 0.7,
+}
+
+# Check common domain-specific abbreviations
+ABBREVIATIONS = {
+    "lat": "latitude",
+    "lon": "longitude",
+    "lng": "longitude",
+    "long": "longitude",
+    "dt": "date",
+    "tm": "time",
+    "addr": "address",
+    "desc": "description",
+    "qty": "quantity",
+    "amt": "amount",
+    "num": "number",
+    "id": "identifier",
+    "coord": "coordinate",
+    "loc": "location",
 }

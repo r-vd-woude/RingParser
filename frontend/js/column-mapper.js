@@ -106,7 +106,7 @@ export async function autoMapFields(appState, elements) {
     elements.generateSection.classList.remove('hidden');
 }
 
-const HARDCODED_FIELDS = new Set(['Modus', 'EURINGCodeIdentifier']);
+const HARDCODED_FIELDS = new Set(['Modus', 'EURINGCodeIdentifier', 'ReportingDate']);
 
 /**
  * Update mapping display — XSD fields as primary, source column dropdowns underneath.

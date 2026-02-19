@@ -56,9 +56,7 @@ class Validator:
         )
 
         # Validate each row
-        for row_idx, row in enumerate(
-            data_rows[:10], start=1
-        ):  # Validate first 10 rows
+        for row_idx, row in enumerate(data_rows, start=1):
             # Validate each mapped column
             for col_idx, header in enumerate(headers):
                 if header not in column_to_target:

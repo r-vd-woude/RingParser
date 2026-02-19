@@ -5,6 +5,7 @@ const API_BASE = '/api';
 const ADVANCED_FIELDS = [
     { name: 'Modus', default: 'Insert' },
     { name: 'EURINGCodeIdentifier', default: '4' },
+    { name: 'ReportingDate', default: 'today' },
 ];
 
 /**

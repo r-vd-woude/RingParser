@@ -1,5 +1,6 @@
 import uuid
 import zipfile
+from datetime import date
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from lxml import etree
@@ -43,13 +44,16 @@ class XMLGenerator:
         }
 
         chunks = [
-            data_rows[i : i + XML_CHUNK_SIZE] for i in range(0, len(data_rows), XML_CHUNK_SIZE)
+            data_rows[i : i + XML_CHUNK_SIZE]
+            for i in range(0, len(data_rows), XML_CHUNK_SIZE)
         ]
 
         xml_id = str(uuid.uuid4())
 
         if len(chunks) == 1:
-            file_path = self._generate_chunk(chunks[0], headers, column_to_target, xml_id, advanced_overrides)
+            file_path = self._generate_chunk(
+                chunks[0], headers, column_to_target, xml_id, advanced_overrides
+            )
             prune_directory(OUTPUT_DIR)
             return xml_id, file_path, 1
 
@@ -57,7 +61,9 @@ class XMLGenerator:
         temp_paths = []
         for i, chunk in enumerate(chunks):
             temp_id = str(uuid.uuid4())
-            temp_path = self._generate_chunk(chunk, headers, column_to_target, temp_id, advanced_overrides)
+            temp_path = self._generate_chunk(
+                chunk, headers, column_to_target, temp_id, advanced_overrides
+            )
             temp_paths.append(temp_path)
 
         zip_path = OUTPUT_DIR / f"{xml_id}.zip"
@@ -84,7 +90,9 @@ class XMLGenerator:
         override_map = {o.field_name: o for o in (advanced_overrides or [])}
 
         for row in data_rows:
-            capture = self._create_capture_element(row, headers, column_to_target, header_idx, override_map)
+            capture = self._create_capture_element(
+                row, headers, column_to_target, header_idx, override_map
+            )
             root.append(capture)
 
         xml_str = etree.tostring(
@@ -120,7 +128,11 @@ class XMLGenerator:
             return default
 
         for field_name, default_value in HARDCODED_FIELD_NAMES.items():
-            etree.SubElement(capture, field_name).text = resolve(field_name, default_value)
+            if default_value == "set_to_today":
+                default_value = date.today().strftime("%Y-%m-%d")
+            etree.SubElement(capture, field_name).text = resolve(
+                field_name, default_value
+            )
 
         field_data = {}
         for col_idx, header in enumerate(headers):
@@ -138,7 +150,7 @@ class XMLGenerator:
                 if not value:
                     continue
 
-            if target_path.endswith('RingNumber'):
+            if target_path.endswith("RingNumber"):
                 value = format_ring_number(value)
 
             field_data[target_path] = value
