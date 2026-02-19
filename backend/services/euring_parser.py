@@ -51,7 +51,27 @@ class EURINGParser(BaseParser):
             for line in lines
         ]
 
-        # Build headers based on all decoded records to ensure we have all possible fields:
+        # Pre-process records: fill derived fields BEFORE building headers so that
+        # latitude/longitude (derived from geographical_coordinates) appear in seen_keys.
+        for record in all_records:
+            if record is None:
+                continue
+
+            # Convert coordinates from DMS to decimal and fill lat/lon if empty
+            coords = dms_to_decimal(
+                record["fields"]["geographical_coordinates"]["value"]
+            )
+            if record["fields"]["latitude"]["value"] == "":
+                record["fields"]["latitude"]["value"] = coords["lat"]
+            if record["fields"]["longitude"]["value"] == "":
+                record["fields"]["longitude"]["value"] = coords["lon"]
+
+            # Convert date to the correct format
+            record["fields"]["date"]["value"] = datetime.strptime(
+                record["fields"]["date"]["value"], "%d%m%Y"
+            ).strftime("%Y-%m-%d")
+
+        # Build headers based on all processed records to ensure we have all possible fields:
         seen_keys = {}
         for record in all_records:
             if record is None:
@@ -69,23 +89,6 @@ class EURINGParser(BaseParser):
             if row_dict is None:
                 data_rows.append(tuple("" for _ in seen_keys))
                 continue
-
-            # Get the coordinates from the record and convert them to decimal
-            coords = dms_to_decimal(
-                row_dict["fields"]["geographical_coordinates"]["value"]
-            )
-
-            # Convert data to the correct format
-            row_dict["fields"]["date"]["value"] = datetime.strptime(
-                row_dict["fields"]["date"]["value"], "%d%m%Y"
-            ).strftime("%y-%m-%d")
-
-            # Fill in the coordinates if they are missing
-            if row_dict["fields"]["latitude"]["value"] == "":
-                row_dict["fields"]["latitude"]["value"] = coords["lat"]
-
-            if row_dict["fields"]["longitude"]["value"] == "":
-                row_dict["fields"]["longitude"]["value"] = coords["lon"]
 
             row_tuple = tuple(
                 row_dict["fields"].get(key, {}).get("value", "") for key in seen_keys

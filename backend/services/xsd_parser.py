@@ -8,13 +8,10 @@ from backend.models.schema_model import (
     XSDSchema, SchemaField, FieldType, Constraint, ConstraintType,
     ChoiceOption
 )
-from backend.config import XSD_SCHEMA_PATH
-
-
 class XSDParser:
     """Parser for XSD schema files"""
 
-    def __init__(self, schema_path: Path = XSD_SCHEMA_PATH):
+    def __init__(self, schema_path: Path):
         self.schema_path = schema_path
         self.schema = None
         self.simple_types = {}
@@ -395,16 +392,12 @@ class XSDParser:
         return total, required
 
 
-# Global parser instance
-_parser: Optional[XSDParser] = None
+# Per-path parser cache
+_parser_cache: dict[Path, XSDParser] = {}
 
 
-def get_parser(schema_path: Path = XSD_SCHEMA_PATH) -> XSDParser:
+def get_parser(schema_path: Path) -> XSDParser:
     """Get or create a parser instance, cached per schema path."""
-    global _parser
-    if schema_path == XSD_SCHEMA_PATH:
-        # Fast path for the default schema
-        if _parser is None:
-            _parser = XSDParser(schema_path)
-        return _parser
-    return XSDParser(schema_path)
+    if schema_path not in _parser_cache:
+        _parser_cache[schema_path] = XSDParser(schema_path)
+    return _parser_cache[schema_path]

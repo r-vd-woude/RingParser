@@ -1,6 +1,16 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
+
+
+class AdvancedOverride(BaseModel):
+    """Override for a hardcoded field in the XML generator.
+
+    Exactly one of static_value or source_column should be set.
+    """
+    field_name: str
+    static_value: Optional[str] = None
+    source_column: Optional[str] = None
 
 
 class GenerateXMLRequest(BaseModel):
@@ -9,6 +19,7 @@ class GenerateXMLRequest(BaseModel):
     file_type: str
     mapping_id: str
     schema_id: Optional[str] = None
+    advanced_overrides: List[AdvancedOverride] = []
 
 
 class GenerateXMLResponse(BaseModel):

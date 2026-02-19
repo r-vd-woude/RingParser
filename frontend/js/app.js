@@ -18,7 +18,8 @@ const appState = {
     biometricsExpanded: false,
     validationResults: null,
     generatedXmlId: null,
-    supportedExtensions: []  // populated from /api/parsers on startup
+    supportedExtensions: [],  // populated from /api/parsers on startup
+    advancedOverrides: {}     // keyed by field name, set by the Advanced panel
 };
 
 // DOM elements
@@ -33,10 +34,14 @@ const elements = {
     parseBtn: document.getElementById('parse-btn'),
 
     schemaSection: document.getElementById('schema-section'),
+    schemaSelection: document.getElementById('schema-selection'),
+    schemaInfo: document.getElementById('schema-info'),
+    schemaNameDisplay: document.getElementById('schema-name-display'),
     schemaList: document.getElementById('schema-list'),
     schemaFileInput: document.getElementById('schema-file-input'),
     schemaUploadStatus: document.getElementById('schema-upload-status'),
     useSchemaBtn: document.getElementById('use-schema-btn'),
+    changeSchemaBtn: document.getElementById('change-schema-btn'),
 
     mappingSection: document.getElementById('mapping-section'),
     mappingControls: document.getElementById('mapping-controls'),
@@ -51,6 +56,8 @@ const elements = {
 
     generateSection: document.getElementById('generate-section'),
     generateBtn: document.getElementById('generate-btn'),
+    advancedToggleBtn: document.getElementById('advanced-toggle-btn'),
+    advancedPanel: document.getElementById('advanced-panel'),
     xmlPreview: document.getElementById('xml-preview'),
     xmlContent: document.getElementById('xml-content'),
     downloadBtn: document.getElementById('download-btn'),
@@ -58,6 +65,26 @@ const elements = {
     loadingOverlay: document.getElementById('loading-overlay'),
     loadingMessage: document.getElementById('loading-message')
 };
+
+// ── Theme toggle ────────────────────────────────────────────────────────────
+const themeToggleBtn = document.getElementById('theme-toggle');
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggleBtn.textContent = theme === 'dark' ? '☀' : '☾';
+    localStorage.setItem('theme', theme);
+}
+
+(function initTheme() {
+    const saved = localStorage.getItem('theme');
+    const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    applyTheme(saved || preferred);
+})();
+
+themeToggleBtn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+});
 
 // Initialize app
 async function init() {
@@ -78,8 +105,8 @@ async function loadSupportedExtensions() {
             ? exts.slice(0, -1).join(', ') + ' or ' + exts.at(-1)
             : exts[0] ?? '';
         document.getElementById('upload-prompt-text').textContent = `Drag and drop your ${label} file here`;
-        document.getElementById('subtitle-text').textContent = `Map ${label} files to an XML XSD schema for Griel Bulkupload`;
-        document.title = `RingParser - ${label} to XSD mapper`;
+        document.getElementById('subtitle-text').textContent = `Map ${label} files to an XML Schema for Griel Bulkupload`;
+        document.title = `RingParser`;
     } catch (error) {
         console.warn('Could not load supported extensions, falling back to defaults:', error);
         appState.supportedExtensions = ['.csv', '.xlsx'];

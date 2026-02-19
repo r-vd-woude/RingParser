@@ -9,14 +9,15 @@
 <body>
     <div class="container">
         <header>
+            <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode">☾</button>
             <h1>RingParser</h1>
-            <p class="subtitle" id="subtitle-text">Map files to an XML XSD schema for Griel Bulkupload</p>
+            <p class="subtitle" id="subtitle-text">Map files to an XML Schema for Griel Bulkupload</p>
         </header>
 
         <main>
             <div class="general-instructions-block">
                 <p class="general-instructions">
-                    Follow the steps below to upload your file, map it to the XSD schema, validate the mapping, and generate your XML file.
+                    Follow the steps below to upload your file, map it to the XML Schema, validate the mapping, and generate your XML file.
                 </p>
                 <ul class="general-instructions instructions--spaced">
                     <li>The file type will be automatically detected and column names will be used to suggest mappings. You can adjust the mappings as needed.</li>
@@ -25,7 +26,7 @@
                     <li>Submit files are normal CSV files with the extension changed to <code>.submit</code>, and must include a column named <code>euring2020</code>.</li>
                 </ul>
                 <p class="general-instructions instructions--spaced">
-                    If you have biometric data, you can include it in your file and map it to the biometric fields in the XSD schema.
+                    If you have biometric data, you can include it in your file and map it to the biometric fields in the XML Schema.
                     The biometric fields are optional, but if included, they will be validated and included in the generated XML.
                 </p>
                 <p class="general-instructions instructions--spaced"></p>
@@ -51,38 +52,65 @@
                         <span id="file-size"></span>
                     </div>
                     <div class="file-actions">
-                        <button id="change-file-btn" class="btn btn-secondary">Change File</button>
-                        <button id="parse-btn" class="btn btn-primary">Parse File</button>
+                        <button id="change-file-btn" class="btn btn-secondary">Change file</button>
+                        <button id="parse-btn" class="btn btn-primary">Parse file</button>
                     </div>
                 </div>
             </section>
 
             <!-- Step 2: Select Schema -->
             <section id="schema-section" class="card hidden">
-                <h2>Step 2: Select XSD Schema</h2>
-                <p class="schema-instructions">Choose a built-in schema or upload your own .xsd file.</p>
+                <h2>Step 2: Select XML Schema</h2>
 
-                <div id="schema-list" class="schema-list">
-                    <!-- Schema cards populated by JS -->
+                <!-- Selection UI (shown initially) -->
+                <div id="schema-selection">
+                    <p class="schema-instructions">Choose a built-in schema or upload your own .xsd file.</p>
+
+                    <div id="schema-list" class="schema-list">
+                        <!-- Schema cards populated by JS -->
+                    </div>
+
+                    <div class="schema-upload-area">
+                        <label class="schema-upload-label">
+                            <input type="file" id="schema-file-input" accept=".xsd,.xml" hidden>
+                            <span class="btn btn-secondary">Upload custom schema</span>
+                        </label>
+                        <span id="schema-upload-status"></span>
+                    </div>
+
+                    <div class="schema-actions">
+                        <button id="use-schema-btn" class="btn btn-primary" disabled>Use selected schema</button>
+                    </div>
                 </div>
 
-                <div class="schema-upload-area">
-                    <label class="schema-upload-label">
-                        <input type="file" id="schema-file-input" accept=".xsd,.xml" hidden>
-                        <span class="btn btn-secondary">Upload custom schema</span>
-                    </label>
-                    <span id="schema-upload-status"></span>
-                </div>
-
-                <div class="schema-actions">
-                    <button id="use-schema-btn" class="btn btn-primary" disabled>Use selected schema</button>
+                <!-- Compact info bar (shown after schema is loaded) -->
+                <div id="schema-info" class="file-info hidden">
+                    <div class="file-details">
+                        <span id="schema-name-display"></span>
+                    </div>
+                    <div class="file-actions">
+                        <button id="change-schema-btn" class="btn btn-secondary">Change Schema</button>
+                    </div>
                 </div>
             </section>
 
             <!-- Step 3: Column Mapping -->
             <section id="mapping-section" class="card hidden">
                 <div class="mapping-controls-bar">
-                    <h2>Step 3: Map Columns to Schema</h2>
+                    <div class="mapping-header-left">
+                        <h2>Step 3: Map Columns to Schema</h2>
+                        <p class="mapping-instructions_1">
+                            Select the target fields from the XML Schema and map them to the columns in your uploaded file.
+                        </p>
+                        <p class="mapping-instructions_2">
+                            Fields in <span class="text-error">red</span> with an * are required while white fields are optional.
+                            <br>You can also add biometric data if you have that.
+                        </p>
+                        <p class="mapping-instructions_3 instructions--spaced">
+                            On the right side of mapping interface, you will see a button with "✓ View sample".
+                            <br>Clicking that will show you what data is in the first few rows of the selected column.<br>
+                        </p>
+                    </div>
                     <div id="mapping-controls" class="mapping-controls">
                         <span id="mapping-status"></span>
                         <div class="mapping-io">
@@ -94,17 +122,6 @@
                         </div>
                     </div>
                 </div>
-                <p class="mapping-instructions_1">
-                    Select the target fields from the XSD schema and map them to the columns in your uploaded file.
-                </p>
-                <p class="mapping-instructions_2">
-                    Fields in <span class="text-error">red</span> with an * are required while white fields are optional. 
-                    <br>You can also add biometric data if you have that.
-                </p>
-                <p class="mapping-instructions_3 instructions--spaced">
-                    On the right side of mapping interface, you will see a button with "✓ View sample".
-                    <br>Clicking that will show you what data is in the first few rows of the selected column.<br>
-                </p>
                 <h3 class="fields-header">Default fields</h3>
                 <div id="target-fields" class="column-list"></div>
                 <div id="biometrics-container" class="hidden">
@@ -120,7 +137,7 @@
                     <button id="validate-btn" class="btn btn-primary">Validate Mapping</button>
                 </div>
                 <p class="validation-instructions">
-                    Validate your mapping against the selected XSD schema. 
+                    Validate your mapping against the selected XML Schema. 
                     This will check for required fields, data types, and any inconsistencies.
                 </p>
                 <div id="validation-results" class="validation-results">
@@ -136,11 +153,21 @@
                 </div>
                 <p class="generate-instructions">
                     Once your mapping is validated, you can generate the XML file. 
+                    <br>
                     You can preview the generated XML before downloading it.
                 </p>
                 <p class="download-instructions">
-                    If you uploaded a file with more than 1000 records, multiple XML files will be generated. Each file will contain up to 1000 records. You can download all generated XML files as a ZIP archive.
+                    If you uploaded a file with more than 1000 records, multiple XML files will be generated.
+                    <br>
+                    Each file will contain up to 1000 records. You can download all generated XML files as a ZIP archive.
                 </p>
+
+                <!-- Advanced options -->
+                <div class="advanced-section">
+                    <button id="advanced-toggle-btn" class="btn btn-secondary advanced-toggle-btn">&#9881; Advanced options</button>
+                    <div id="advanced-panel" class="advanced-panel hidden"></div>
+                </div>
+
                 <div id="xml-preview" class="xml-preview hidden">
                     <h3>XML Preview</h3>
                     <pre id="xml-content"></pre>

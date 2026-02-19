@@ -34,9 +34,29 @@ body {
 
 /* Header */
 header {
+    position: relative;
     text-align: center;
     margin-bottom: 40px;
     padding: 30px 0;
+}
+
+.theme-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.2s, color 0.2s;
+}
+
+.theme-toggle:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
 }
 
 header h1 {
@@ -177,7 +197,11 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: px;
+    margin-bottom: 0;
+}
+
+.mapping-header-left h2 {
+    margin-bottom: 8px;
 }
 .mapping-controls {
     display: flex;
@@ -524,6 +548,76 @@ footer {
     margin-top: 1rem;
 }
 
+/* Shared instruction text treatment — all step-level instruction paragraphs */
+.schema-instructions,
+.mapping-instructions_1,
+.mapping-instructions_2,
+.mapping-instructions_3,
+.validation-instructions,
+.generate-instructions,
+.download-instructions {
+    border-left: 4px solid var(--primary-color);
+    background: var(--hover-bg);
+    border-radius: 0 6px 6px 0;
+    padding: 0.6rem 1rem;
+    margin: 0.75rem 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+/* General instructions block */
+.general-instructions-block {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.general-instructions-block .general-instructions {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.general-instructions-block ul.general-instructions {
+    padding-left: 0;
+    list-style: none;
+    margin: 0;
+}
+
+.general-instructions-block ul.general-instructions li {
+    position: relative;
+    padding-left: 1.4rem;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+.general-instructions-block ul.general-instructions li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.general-instructions-block p.general-instructions + ul.general-instructions {
+    margin-top: 0.75rem;
+}
+
+.general-instructions-block p.instructions--spaced {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
 /* Schema selector (Step 2) */
 .schema-list {
     display: flex;
@@ -582,4 +676,158 @@ footer {
 .schema-actions {
     display: flex;
     justify-content: flex-end;
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: #334155;
+    --hover-bg: #334155;
+}
+
+/* Hardcoded background colours that don't use variables */
+[data-theme="dark"] .column-item.required {
+    background-color: #2d1515;
+}
+
+[data-theme="dark"] .upload-area.drag-over {
+    background-color: #172554;
+}
+
+[data-theme="dark"] .validation-error {
+    background-color: #2d1515;
+}
+
+[data-theme="dark"] .validation-success {
+    background-color: #0d2d1e;
+}
+
+[data-theme="dark"] .validation-warning {
+    background-color: #2d2007;
+}
+
+[data-theme="dark"] .biometrics-toggle.active {
+    background-color: #0d2d1e;
+}
+
+/* Native select elements need explicit colours in dark mode */
+[data-theme="dark"] select {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+/* XML preview already has its own dark palette; keep it readable in dark mode */
+[data-theme="dark"] #xml-content {
+    background-color: #0f172a;
+}
+
+/* ── Advanced options panel (Step 5) ───────────────────────────────────── */
+
+.advanced-section {
+    margin: 16px 0;
+}
+
+.advanced-toggle-btn {
+    font-size: 0.875rem;
+    padding: 7px 14px;
+}
+
+.advanced-toggle-btn.active {
+    background-color: var(--primary-color);
+}
+
+.advanced-panel {
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--hover-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.advanced-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.advanced-field-name {
+    min-width: 180px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding-top: 6px;
+    color: var(--text-primary);
+}
+
+.advanced-field-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.advanced-option-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.advanced-option-label input[type="radio"] {
+    cursor: pointer;
+}
+
+.advanced-static-input {
+    padding: 5px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    width: 120px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.advanced-static-input:disabled {
+    opacity: 0.4;
+}
+
+.advanced-column-select {
+    width: 200px;
+    margin-top: 0;
+}
+
+.advanced-column-select:disabled {
+    opacity: 0.4;
+}
+
+.advanced-separator {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 12px 0;
+}
+
+.advanced-override-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.advanced-override-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.advanced-remove-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1;
 }

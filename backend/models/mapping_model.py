@@ -44,6 +44,7 @@ class CreateMappingRequest(BaseModel):
     file_id: str
     file_type: str
     mappings: List[FieldMapping]
+    schema_id: Optional[str] = None
 
 
 class CreateMappingResponse(BaseModel):

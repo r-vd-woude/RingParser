@@ -24,7 +24,7 @@ from backend.models.mapping_model import (
 from backend.models.validation_model import ValidateDataRequest, ValidationResult
 from backend.models.xml_model import GenerateXMLRequest, GenerateXMLResponse
 from backend.utils.file_handler import FileHandler
-from backend.config import OUTPUT_DIR, FORMAT_DIR, XSD_SCHEMA_PATH
+from backend.config import OUTPUT_DIR, FORMAT_DIR
 
 router = APIRouter()
 
@@ -42,13 +42,18 @@ async def list_parsers():
 
 
 def _resolve_schema_path(schema_id: Optional[str]) -> Path:
-    """Resolve a schema_id (filename) to a full path, defaulting to the built-in schema."""
+    """Resolve a schema_id (filename) to a full path, defaulting to the first available schema."""
     if schema_id:
         path = FORMAT_DIR / schema_id
         if not path.exists():
-            raise HTTPException(status_code=404, detail=f"Schema '{schema_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Schema '{schema_id}' not found"
+            )
         return path
-    return XSD_SCHEMA_PATH
+    for f in sorted(FORMAT_DIR.iterdir()):
+        if f.is_file() and f.suffix in (".xsd", ".xml"):
+            return f
+    raise HTTPException(status_code=404, detail="No schema files available")
 
 
 @router.get("/schema/list")
@@ -64,8 +69,12 @@ async def list_schemas():
 @router.post("/schema/upload")
 async def upload_schema(file: UploadFile = File(...)):
     """Upload a custom XSD schema file to the format directory."""
-    if not file.filename or not (file.filename.endswith(".xsd") or file.filename.endswith(".xml")):
-        raise HTTPException(status_code=400, detail="Only .xsd or .xml files are accepted")
+    if not file.filename or not (
+        file.filename.endswith(".xsd") or file.filename.endswith(".xml")
+    ):
+        raise HTTPException(
+            status_code=400, detail="Only .xsd or .xml files are accepted"
+        )
     dest = FORMAT_DIR / file.filename
     content = await file.read()
     dest.write_bytes(content)
@@ -96,10 +105,10 @@ async def parse_schema(schema_id: Optional[str] = Body(None, embed=True)):
 @router.post("/file/upload", response_model=FileUploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """
-    Upload a CSV or XLSX file for processing.
+    Upload a supported file for processing.
 
     Args:
-        file: Uploaded file (CSV or XLSX)
+        file: Uploaded file
 
     Returns:
         FileUploadResponse with file information and upload ID
@@ -139,7 +148,7 @@ async def parse_file(
         file_type: Type of file
 
     Returns:
-        Union[CSVParseResult, XLSXParseResult]: Parsed file data
+        Parsed file data
     """
     try:
         # Get file path
@@ -160,7 +169,7 @@ async def parse_file(
 
 
 @router.post("/mapping/create", response_model=CreateMappingResponse)
-async def create_mapping(request: CreateMappingRequest, schema_id: Optional[str] = Body(None, embed=True)):
+async def create_mapping(request: CreateMappingRequest):
     """
     Create or update column mapping configuration.
 
@@ -173,22 +182,22 @@ async def create_mapping(request: CreateMappingRequest, schema_id: Optional[str]
     try:
         mapping_engine = get_mapping_engine()
 
-        # Create/update mapping
+        # Create/update mapping — this must always succeed
         config = mapping_engine.create_mapping(
             file_id=request.file_id,
             file_type=request.file_type,
             mappings=request.mappings,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating mapping: {str(e)}")
 
-        # Get schema to calculate required fields stats
-        parser = get_parser(_resolve_schema_path(schema_id))
+    # Schema stats are optional — a parsing failure must not prevent returning mapping_id
+    required_fields_total = 0
+    required_fields_mapped = 0
+    try:
+        parser = get_parser(_resolve_schema_path(request.schema_id))
         schema = parser.parse()
-
-        # Count required fields that are mapped
-        mapped_paths = {m.target_path for m in request.mappings}
         required_fields_total = schema.required_fields
-
-        # This is a simplified count - in production, traverse schema properly
         required_fields_mapped = len(
             [
                 m
@@ -196,17 +205,16 @@ async def create_mapping(request: CreateMappingRequest, schema_id: Optional[str]
                 if any(f.path == m.target_path and f.required for f in schema.fields)
             ]
         )
+    except Exception:
+        pass  # stats failure is non-fatal
 
-        return CreateMappingResponse(
-            mapping_id=config.mapping_id,
-            message="Mapping configuration saved successfully",
-            total_mappings=len(request.mappings),
-            required_fields_mapped=required_fields_mapped,
-            required_fields_total=required_fields_total,
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating mapping: {str(e)}")
+    return CreateMappingResponse(
+        mapping_id=config.mapping_id,
+        message="Mapping configuration saved successfully",
+        total_mappings=len(request.mappings),
+        required_fields_mapped=required_fields_mapped,
+        required_fields_total=required_fields_total,
+    )
 
 
 @router.post("/mapping/suggest", response_model=MappingSuggestionsResponse)
@@ -354,6 +362,7 @@ async def generate_xml(request: GenerateXMLRequest):
             headers=headers,
             mapping_config=mapping_config,
             schema=schema,
+            advanced_overrides=request.advanced_overrides,
         )
 
         # Get preview

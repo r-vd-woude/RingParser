@@ -74,7 +74,7 @@ export async function autoMapFields(appState, elements) {
     const response = await fetch(`${API_BASE}/mapping/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_columns: sourceColumnNames, threshold: 0.5 })
+        body: JSON.stringify({ source_columns: sourceColumnNames, threshold: 0.5, schema_id: appState.selectedSchemaId })
     });
 
     if (!response.ok) {
@@ -84,9 +84,12 @@ export async function autoMapFields(appState, elements) {
     const data = await response.json();
     console.log('Mapping suggestions:', data);
 
-    // Store mappings keyed by target_path
+    // Store mappings keyed by target_path (skip biometrics — user opts in manually;
+    // skip ProjectIDRingerNumber — only ActingUserProjectID is used)
     appState.mappings = {};
     data.suggestions.forEach(suggestion => {
+        if (suggestion.target_path.includes('Biometrics')) return;
+        if (suggestion.target_path.includes('ProjectIDRingerNumber')) return;
         appState.mappings[suggestion.target_path] = {
             source_column: suggestion.source_column,
             target_name: suggestion.target_name,
@@ -331,11 +334,6 @@ export async function saveMappingConfiguration(appState) {
         return;
     }
 
-    if (Object.keys(appState.mappings).length === 0) {
-        console.warn('Cannot save mapping: no mappings defined');
-        return;
-    }
-
     try {
         const mappings = Object.entries(appState.mappings).map(([targetPath, mapping]) => ({
             source_column: mapping.source_column,
@@ -350,7 +348,8 @@ export async function saveMappingConfiguration(appState) {
             body: JSON.stringify({
                 file_id: appState.fileId,
                 file_type: appState.fileType,
-                mappings: mappings
+                mappings: mappings,
+                schema_id: appState.selectedSchemaId
             })
         });
 

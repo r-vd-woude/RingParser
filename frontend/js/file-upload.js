@@ -33,6 +33,11 @@ function resetUpload(appState, elements) {
     elements.uploadArea.style.display = '';
     elements.fileInfo.classList.add('hidden');
 
+    // Reset schema section back to selection state
+    elements.schemaInfo.classList.add('hidden');
+    elements.schemaSelection.classList.remove('hidden');
+    elements.useSchemaBtn.disabled = true;
+
     // Hide downstream sections
     elements.schemaSection.classList.add('hidden');
     elements.mappingSection.classList.add('hidden');

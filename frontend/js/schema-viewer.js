@@ -40,11 +40,42 @@ export function setupSchemaSelector(appState, elements) {
         window.showLoading('Loading schema...');
         try {
             await loadSchema(appState, elements);
+            // Switch to compact info bar
+            const selectedCard = elements.schemaList.querySelector('.schema-card--selected');
+            const schemaName = selectedCard
+                ? selectedCard.querySelector('.schema-card__name').textContent
+                : appState.selectedSchemaId;
+            elements.schemaNameDisplay.textContent = schemaName;
+            elements.schemaSelection.classList.add('hidden');
+            elements.schemaInfo.classList.remove('hidden');
         } catch (err) {
             window.showError('Failed to load schema: ' + err.message);
         } finally {
             window.hideLoading();
         }
+    });
+
+    // Change schema button — reset to selection UI and hide downstream
+    elements.changeSchemaBtn.addEventListener('click', () => {
+        appState.selectedSchemaId = null;
+        appState.schemaFields = [];
+        appState.mappings = {};
+        appState.mappingId = null;
+        appState.biometricsExpanded = false;
+
+        elements.schemaInfo.classList.add('hidden');
+        elements.schemaSelection.classList.remove('hidden');
+        elements.useSchemaBtn.disabled = true;
+        elements.schemaList.querySelectorAll('.schema-card').forEach(c =>
+            c.classList.remove('schema-card--selected')
+        );
+
+        elements.mappingSection.classList.add('hidden');
+        elements.validationSection.classList.add('hidden');
+        elements.generateSection.classList.add('hidden');
+        elements.validationResults.innerHTML = '<p class="placeholder">Validation results will appear here after running validation.</p>';
+        elements.xmlContent.textContent = '';
+        elements.xmlPreview.classList.add('hidden');
     });
 }
 
@@ -106,7 +137,6 @@ export async function loadSchema(appState, elements) {
     const schema = await response.json();
     appState.schemaFields = schema.fields;
 
-//    elements.schemaSection.classList.add('hidden');
     await autoMapFields(appState, elements);
 }
 
@@ -128,7 +158,8 @@ export async function validateMapping(appState, elements) {
             body: JSON.stringify({
                 file_id: appState.fileId,
                 file_type: appState.fileType,
-                mapping_id: appState.mappingId
+                mapping_id: appState.mappingId,
+                schema_id: appState.selectedSchemaId
             })
         });
 

@@ -6,8 +6,9 @@ from lxml import etree
 
 from backend.models.mapping_model import MappingConfiguration
 from backend.models.schema_model import XSDSchema
-from backend.config import OUTPUT_DIR, XML_CHUNK_SIZE
+from backend.config import OUTPUT_DIR, XML_CHUNK_SIZE, HARDCODED_FIELD_NAMES
 from backend.utils.file_handler import prune_directory
+from backend.utils.ring_number import format_ring_number
 
 
 class XMLGenerator:
@@ -22,6 +23,7 @@ class XMLGenerator:
         headers: List[str],
         mapping_config: MappingConfiguration,
         schema: XSDSchema,
+        advanced_overrides: Optional[List[Any]] = None,
     ) -> tuple[str, Path, int]:
         """
         Generate XML output from mapped data. Automatically splits into chunks
@@ -47,7 +49,7 @@ class XMLGenerator:
         xml_id = str(uuid.uuid4())
 
         if len(chunks) == 1:
-            file_path = self._generate_chunk(chunks[0], headers, column_to_target, xml_id)
+            file_path = self._generate_chunk(chunks[0], headers, column_to_target, xml_id, advanced_overrides)
             prune_directory(OUTPUT_DIR)
             return xml_id, file_path, 1
 
@@ -55,7 +57,7 @@ class XMLGenerator:
         temp_paths = []
         for i, chunk in enumerate(chunks):
             temp_id = str(uuid.uuid4())
-            temp_path = self._generate_chunk(chunk, headers, column_to_target, temp_id)
+            temp_path = self._generate_chunk(chunk, headers, column_to_target, temp_id, advanced_overrides)
             temp_paths.append(temp_path)
 
         zip_path = OUTPUT_DIR / f"{xml_id}.zip"
@@ -73,12 +75,16 @@ class XMLGenerator:
         headers: List[str],
         column_to_target: Dict[str, str],
         chunk_id: str,
+        advanced_overrides: Optional[List[Any]] = None,
     ) -> Path:
         """Generate a single XML file from a chunk of rows."""
         root = etree.Element("MyBulk")
+        # Build header index once per chunk so every row can do O(1) lookups
+        header_idx = {h: i for i, h in enumerate(headers)}
+        override_map = {o.field_name: o for o in (advanced_overrides or [])}
 
         for row in data_rows:
-            capture = self._create_capture_element(row, headers, column_to_target)
+            capture = self._create_capture_element(row, headers, column_to_target, header_idx, override_map)
             root.append(capture)
 
         xml_str = etree.tostring(
@@ -92,12 +98,29 @@ class XMLGenerator:
         return file_path
 
     def _create_capture_element(
-        self, row: List[str], headers: List[str], column_to_target: Dict[str, str]
+        self,
+        row: List[str],
+        headers: List[str],
+        column_to_target: Dict[str, str],
+        header_idx: Dict[str, int],
+        override_map: Dict[str, Any],
     ) -> etree.Element:
         """Create a Capture element from a data row"""
         capture = etree.Element("Capture")
-        etree.SubElement(capture, "Modus").text = "Insert"
-        etree.SubElement(capture, "EURINGCodeIdentifier").text = "4"
+
+        def resolve(field_name: str, default: str) -> str:
+            ov = override_map.get(field_name)
+            if ov is None:
+                return default
+            if ov.source_column and ov.source_column in header_idx:
+                v = str(row[header_idx[ov.source_column]]).strip()
+                return v if v else default
+            if ov.static_value is not None:
+                return ov.static_value
+            return default
+
+        for field_name, default_value in HARDCODED_FIELD_NAMES.items():
+            etree.SubElement(capture, field_name).text = resolve(field_name, default_value)
 
         field_data = {}
         for col_idx, header in enumerate(headers):
@@ -105,11 +128,18 @@ class XMLGenerator:
                 continue
 
             target_path = column_to_target[header]
-            raw = row[col_idx] if col_idx < len(row) else None
-            value = str(raw).strip() if raw is not None else ""
 
-            if not value:
-                continue
+            col_override = override_map.get(target_path)
+            if col_override is not None and col_override.static_value is not None:
+                value = col_override.static_value
+            else:
+                raw = row[col_idx] if col_idx < len(row) else None
+                value = str(raw).strip() if raw is not None else ""
+                if not value:
+                    continue
+
+            if target_path.endswith('RingNumber'):
+                value = format_ring_number(value)
 
             field_data[target_path] = value
 
