@@ -148,9 +148,11 @@ class MappingEngine:
                     self._flatten_schema_fields(field.children, field.path)
                 )
 
-            # Flatten choice options
+            # Flatten choice options (skip ProjectIDRingerNumber — only ActingUserProjectID is used)
             if field.is_choice and field.choice_options:
                 for option in field.choice_options:
+                    if option.name == "ProjectIDRingerNumber":
+                        continue
                     if option.fields:
                         flattened.extend(
                             self._flatten_schema_fields(option.fields, option.path)

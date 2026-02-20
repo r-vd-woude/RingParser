@@ -33,6 +33,9 @@ class CSVParser(BaseParser):
 
         headers = rows[0]
         data_rows = rows[1:]
+        from backend.config import MAX_DATA_ROWS
+        if len(data_rows) > MAX_DATA_ROWS:
+            raise ValueError(f"File exceeds the maximum of {MAX_DATA_ROWS:,} data rows")
         sample_data = data_rows[:10]
         column_info = _infer_column_types(headers, data_rows)
 

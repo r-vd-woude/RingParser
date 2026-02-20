@@ -13,6 +13,7 @@ FORMAT_DIR = DATA_DIR / "format"
 
 # File upload settings
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_UPLOAD_SIZE_SCHEMA = 252 * 1024  # 252KB
 
 # Derived from the parser registry — add new parsers there, not here
 ALLOWED_EXTENSIONS = supported_extensions()
@@ -20,20 +21,27 @@ ALLOWED_EXTENSIONS = supported_extensions()
 # Server settings
 HOST = "127.0.0.1"
 PORT = 8000
-DEBUG = True
+DEBUG = False
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # XML generation settings
-XML_CHUNK_SIZE = 1000  # Max rows per XML file (XSD maxOccurs limit)
+XML_CHUNK_SIZE = 1000  # Max rows per XML file
+MAX_DATA_ROWS = 10_000  # Max data rows accepted from any uploaded file
 
 # File retention — oldest files are deleted once this limit is exceeded (FIFO)
 MAX_RETAINED_FILES = 50
 
+# API limiter settings
+UPLOAD_LIMIT = "5/minute"  # Limit to 5 uploads per minute per IP
+DOWNLOAD_LIMIT = "5/minute"  # Limit to 20 downloads per minute per IP
+MAPPING_LIMIT = "100/minute"  # Limit to 100 mapping requests per minute per IP
+
 # Fields hardcoded in the XML generator — maps field name to its default value.
 # Add new fields here; both the generator and validator derive their behaviour from this.
+# These can be overridden by an "advanced overrides".
 HARDCODED_FIELD_NAMES: dict[str, str | None] = {
     "Modus": "Insert",
     "EURINGCodeIdentifier": "4",

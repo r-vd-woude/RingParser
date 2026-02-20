@@ -53,6 +53,7 @@ function importMappingFromJson(json, appState, elements) {
     }
     appState.mappings = {};
     Object.entries(json.mappings).forEach(([targetPath, mapping]) => {
+        if (targetPath.includes('ProjectIDRingerNumber')) return;
         appState.mappings[targetPath] = {
             source_column: mapping.source_column,
             target_name: mapping.target_name,
@@ -144,8 +145,6 @@ export function updateMappingDisplay(appState, elements) {
         const existing = elements.mappingControls.querySelector('.biometrics-toggle');
         if (existing) existing.remove();
 
-        // Insert toggle button at the end of .mapping-io
-        const mappingIo = elements.mappingControls.querySelector('.mapping-io');
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'btn btn-secondary biometrics-toggle' + (appState.biometricsExpanded ? ' active' : '');
         toggleBtn.textContent = 'Add biometric data';

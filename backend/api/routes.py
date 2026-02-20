@@ -1,5 +1,8 @@
+import xmlschema
+
 from fastapi import (
     APIRouter,
+    Request,
     UploadFile,
     File,
     HTTPException,
@@ -8,6 +11,8 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse
 from typing import List, Optional
+from pathlib import Path
+import uuid as uuid
 
 from backend.services.xsd_parser import get_parser
 from backend.services.parser_registry import get_file_parser, supported_extensions
@@ -24,7 +29,8 @@ from backend.models.mapping_model import (
 from backend.models.validation_model import ValidateDataRequest, ValidationResult
 from backend.models.xml_model import GenerateXMLRequest, GenerateXMLResponse
 from backend.utils.file_handler import FileHandler
-from backend.config import OUTPUT_DIR, FORMAT_DIR
+from backend.config import OUTPUT_DIR, FORMAT_DIR, MAX_UPLOAD_SIZE_SCHEMA, UPLOAD_LIMIT, DOWNLOAD_LIMIT, MAPPING_LIMIT
+from backend.limiter import limiter
 
 router = APIRouter()
 
@@ -67,7 +73,8 @@ async def list_schemas():
 
 
 @router.post("/schema/upload")
-async def upload_schema(file: UploadFile = File(...)):
+@limiter.limit(UPLOAD_LIMIT)
+async def upload_schema(request: Request, file: UploadFile = File(...)):
     """Upload a custom XSD schema file to the format directory."""
     if not file.filename or not (
         file.filename.endswith(".xsd") or file.filename.endswith(".xml")
@@ -75,9 +82,26 @@ async def upload_schema(file: UploadFile = File(...)):
         raise HTTPException(
             status_code=400, detail="Only .xsd or .xml files are accepted"
         )
-    dest = FORMAT_DIR / file.filename
+    if "/" in file.filename or "\\" in file.filename:
+        raise HTTPException(
+            status_code=400, detail="Filename must not contain path separators"
+        )
+    safe_name = Path(file.filename).name
+    dest = FORMAT_DIR / safe_name
     content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE_SCHEMA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {MAX_UPLOAD_SIZE_SCHEMA / 1024:.0f}KB",
+        )
     dest.write_bytes(content)
+    try:
+        xmlschema.XMLSchema(str(dest))
+    except Exception as e:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400, detail=f"Invalid or unreadable schema file: {e}"
+        )
     return {"id": file.filename, "name": Path(file.filename).stem, "size": len(content)}
 
 
@@ -103,7 +127,8 @@ async def parse_schema(schema_id: Optional[str] = Body(None, embed=True)):
 
 
 @router.post("/file/upload", response_model=FileUploadResponse)
-async def upload_file(file: UploadFile = File(...)):
+@limiter.limit(UPLOAD_LIMIT)
+async def upload_file(request: Request, file: UploadFile = File(...)):
     """
     Upload a supported file for processing.
 
@@ -169,7 +194,8 @@ async def parse_file(
 
 
 @router.post("/mapping/create", response_model=CreateMappingResponse)
-async def create_mapping(request: CreateMappingRequest):
+@limiter.limit(MAPPING_LIMIT)
+async def create_mapping(request: Request, body: CreateMappingRequest):
     """
     Create or update column mapping configuration.
 
@@ -184,9 +210,9 @@ async def create_mapping(request: CreateMappingRequest):
 
         # Create/update mapping — this must always succeed
         config = mapping_engine.create_mapping(
-            file_id=request.file_id,
-            file_type=request.file_type,
-            mappings=request.mappings,
+            file_id=body.file_id,
+            file_type=body.file_type,
+            mappings=body.mappings,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating mapping: {str(e)}")
@@ -195,13 +221,13 @@ async def create_mapping(request: CreateMappingRequest):
     required_fields_total = 0
     required_fields_mapped = 0
     try:
-        parser = get_parser(_resolve_schema_path(request.schema_id))
+        parser = get_parser(_resolve_schema_path(body.schema_id))
         schema = parser.parse()
         required_fields_total = schema.required_fields
         required_fields_mapped = len(
             [
                 m
-                for m in request.mappings
+                for m in body.mappings
                 if any(f.path == m.target_path and f.required for f in schema.fields)
             ]
         )
@@ -211,14 +237,16 @@ async def create_mapping(request: CreateMappingRequest):
     return CreateMappingResponse(
         mapping_id=config.mapping_id,
         message="Mapping configuration saved successfully",
-        total_mappings=len(request.mappings),
+        total_mappings=len(body.mappings),
         required_fields_mapped=required_fields_mapped,
         required_fields_total=required_fields_total,
     )
 
 
 @router.post("/mapping/suggest", response_model=MappingSuggestionsResponse)
+@limiter.limit(MAPPING_LIMIT)
 async def suggest_mapping(
+    request: Request,
     source_columns: List[str] = Body(
         ..., embed=True, description="Source column names"
     ),
@@ -264,7 +292,8 @@ async def suggest_mapping(
 
 
 @router.post("/mapping/validate", response_model=ValidationResult)
-async def validate_mapping(request: ValidateDataRequest):
+@limiter.limit(MAPPING_LIMIT)
+async def validate_mapping(request: Request, body: ValidateDataRequest):
     """
     Validate mapped data against XSD constraints.
 
@@ -276,28 +305,28 @@ async def validate_mapping(request: ValidateDataRequest):
     """
     try:
         # Get file path
-        file_path = FileHandler.get_upload_path(request.file_id, request.file_type)
+        file_path = FileHandler.get_upload_path(body.file_id, body.file_type)
         if not file_path:
             raise HTTPException(
-                status_code=404, detail=f"File not found with ID: {request.file_id}"
+                status_code=404, detail=f"File not found with ID: {body.file_id}"
             )
 
         # Parse file to get data
-        file_data = await get_file_parser(request.file_type).parse_file(file_path)
+        file_data = await get_file_parser(body.file_type).parse_file(file_path)
         data_rows = file_data["data_rows"]
         headers = file_data["headers"]
 
         # Get mapping configuration
         mapping_engine = get_mapping_engine()
-        mapping_config = mapping_engine.get_mapping(request.mapping_id)
+        mapping_config = mapping_engine.get_mapping(body.mapping_id)
         if not mapping_config:
             raise HTTPException(
                 status_code=404,
-                detail=f"Mapping not found with ID: {request.mapping_id}",
+                detail=f"Mapping not found with ID: {body.mapping_id}",
             )
 
         # Get schema
-        parser = get_parser(_resolve_schema_path(request.schema_id))
+        parser = get_parser(_resolve_schema_path(body.schema_id))
         schema = parser.parse()
 
         # Validate
@@ -318,7 +347,8 @@ async def validate_mapping(request: ValidateDataRequest):
 
 
 @router.post("/xml/generate", response_model=GenerateXMLResponse)
-async def generate_xml(request: GenerateXMLRequest):
+@limiter.limit(UPLOAD_LIMIT)
+async def generate_xml(request: Request, body: GenerateXMLRequest):
     """
     Generate XML output from mapping configuration and source data.
 
@@ -330,29 +360,29 @@ async def generate_xml(request: GenerateXMLRequest):
     """
     try:
         # Get file path
-        file_path = FileHandler.get_upload_path(request.file_id, request.file_type)
+        file_path = FileHandler.get_upload_path(body.file_id, body.file_type)
         if not file_path:
             raise HTTPException(
-                status_code=404, detail=f"File not found with ID: {request.file_id}"
+                status_code=404, detail=f"File not found with ID: {body.file_id}"
             )
 
         # Parse file to get data
-        file_data = await get_file_parser(request.file_type).parse_file(file_path)
+        file_data = await get_file_parser(body.file_type).parse_file(file_path)
         data_rows = file_data["data_rows"]
         headers = file_data["headers"]
         total_rows = file_data["total_rows"]
 
         # Get mapping configuration
         mapping_engine = get_mapping_engine()
-        mapping_config = mapping_engine.get_mapping(request.mapping_id)
+        mapping_config = mapping_engine.get_mapping(body.mapping_id)
         if not mapping_config:
             raise HTTPException(
                 status_code=404,
-                detail=f"Mapping not found with ID: {request.mapping_id}",
+                detail=f"Mapping not found with ID: {body.mapping_id}",
             )
 
         # Get schema
-        parser = get_parser(_resolve_schema_path(request.schema_id))
+        parser = get_parser(_resolve_schema_path(body.schema_id))
         schema = parser.parse()
 
         # Generate XML
@@ -362,7 +392,7 @@ async def generate_xml(request: GenerateXMLRequest):
             headers=headers,
             mapping_config=mapping_config,
             schema=schema,
-            advanced_overrides=request.advanced_overrides,
+            advanced_overrides=body.advanced_overrides,
         )
 
         # Get preview
@@ -390,7 +420,9 @@ async def generate_xml(request: GenerateXMLRequest):
 
 
 @router.get("/xml/download/{xml_id}")
+@limiter.limit(DOWNLOAD_LIMIT)
 async def download_xml(
+    request: Request,
     xml_id: str = FastAPIPath(..., description="ID of generated XML"),
 ):
     """
@@ -402,6 +434,11 @@ async def download_xml(
     Returns:
         FileResponse with XML file
     """
+    try:
+        uuid.UUID(xml_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid XML ID")
+
     try:
         zip_file = OUTPUT_DIR / f"{xml_id}.zip"
         xml_file = OUTPUT_DIR / f"{xml_id}.xml"

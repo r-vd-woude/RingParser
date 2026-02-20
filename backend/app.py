@@ -8,10 +8,18 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.limiter import limiter
 
 from backend.api import routes
 
-from backend.config import CORS_ORIGINS, CORS_CREDENTIALS, CORS_METHODS, CORS_HEADERS
+from backend.config import (
+    CORS_ORIGINS,
+    CORS_CREDENTIALS,
+    CORS_METHODS,
+    CORS_HEADERS,
+)
 
 
 @asynccontextmanager
@@ -65,6 +73,11 @@ app.add_middleware(
 # This makes all API endpoints available at /api/[endpoint]
 app.include_router(routes.router, prefix="/api")
 
+# ============================================================================
+# API Rate Limiting Configuration
+# ============================================================================
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ============================================================================
 # Frontend Static Files Serving

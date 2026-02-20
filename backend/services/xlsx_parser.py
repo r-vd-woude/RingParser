@@ -44,8 +44,11 @@ class XLSXParser(BaseParser):
         sheet = workbook.active
         headers = [str(cell.value) if cell.value is not None else "" for cell in next(sheet.iter_rows(min_row=1, max_row=1))]
 
+        from backend.config import MAX_DATA_ROWS
         data_rows = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
+            if len(data_rows) >= MAX_DATA_ROWS:
+                raise ValueError(f"File exceeds the maximum of {MAX_DATA_ROWS:,} data rows")
             data_rows.append(row)
 
         sample_data = data_rows[:10]
