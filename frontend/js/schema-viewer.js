@@ -169,6 +169,7 @@ export async function validateMapping(appState, elements) {
         }
 
         const result = await response.json();
+        appState.validationResults = result;
         displayValidationResults(result, elements);
 
         if (result.is_valid && result.required_fields_missing.length === 0) {
@@ -177,7 +178,11 @@ export async function validateMapping(appState, elements) {
             elements.generateBtn.disabled = false;
         } else {
             elements.generateBtn.disabled = true;
-            window.showError(`Validation found ${result.total_errors} errors. Please fix them before generating XML.`);
+            showNotificationModal(
+                'Validation Errors Found',
+                `${result.total_errors} errors were found. Please review and fix them before generating XML.`,
+                'var(--error-color)'
+            );
         }
 
     } catch (error) {
@@ -190,6 +195,21 @@ export async function validateMapping(appState, elements) {
 
 function displayValidationResults(result, elements) {
     elements.validationResults.innerHTML = '';
+
+    if (result.required_fields_missing && result.required_fields_missing.length > 0) {
+        const missingDiv = document.createElement('div');
+        missingDiv.className = 'validation-warning';
+        missingDiv.style.marginBottom = '16px';
+        missingDiv.innerHTML = `
+            <strong>Required Fields Not Mapped (${result.required_fields_missing.length})</strong><br>
+            <small>These fields are required by the XSD schema but not currently mapped:</small>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+                ${result.required_fields_missing.slice(0, 10).map(f => `<li>${f}</li>`).join('')}
+                ${result.required_fields_missing.length > 10 ? `<li><em>...and ${result.required_fields_missing.length - 10} more</em></li>` : ''}
+            </ul>
+        `;
+        elements.validationResults.appendChild(missingDiv);
+    }
 
     const statusDiv = document.createElement('div');
     statusDiv.className = result.is_valid && result.total_errors === 0 ? 'validation-success' : 'validation-error';
@@ -225,19 +245,22 @@ function displayValidationResults(result, elements) {
 
         elements.validationResults.appendChild(messagesContainer);
     }
+}
 
-    if (result.required_fields_missing && result.required_fields_missing.length > 0) {
-        const missingDiv = document.createElement('div');
-        missingDiv.className = 'validation-warning';
-        missingDiv.style.marginTop = '16px';
-        missingDiv.innerHTML = `
-            <strong>Required Fields Not Mapped (${result.required_fields_missing.length})</strong><br>
-            <small>These fields are required by the XSD schema but not currently mapped:</small>
-            <ul style="margin-top: 8px; padding-left: 20px;">
-                ${result.required_fields_missing.slice(0, 10).map(f => `<li>${f}</li>`).join('')}
-                ${result.required_fields_missing.length > 10 ? `<li><em>...and ${result.required_fields_missing.length - 10} more</em></li>` : ''}
-            </ul>
-        `;
-        elements.validationResults.appendChild(missingDiv);
-    }
+function showNotificationModal(title, message, titleColor = 'var(--error-color)') {
+    const modal = document.getElementById('notification-modal');
+    const titleEl = document.getElementById('notification-modal-title');
+    const msgEl = document.getElementById('notification-modal-message');
+    const okBtn = document.getElementById('notification-modal-ok-btn');
+
+    titleEl.textContent = title;
+    titleEl.style.color = titleColor;
+    msgEl.textContent = message;
+    modal.classList.remove('hidden');
+
+    const close = () => {
+        modal.classList.add('hidden');
+        okBtn.removeEventListener('click', close);
+    };
+    okBtn.addEventListener('click', close);
 }

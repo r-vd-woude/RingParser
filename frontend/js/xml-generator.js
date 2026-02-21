@@ -7,6 +7,9 @@ const ADVANCED_FIELDS = [
     { name: 'EURINGCodeIdentifier', default: '4' },
 ];
 
+// Fields handled automatically — excluded from the required-field check
+const HARDCODED_FIELDS = new Set(['Modus', 'EURINGCodeIdentifier', 'ReportingDate']);
+
 /**
  * Setup XML generator event listeners
  */
@@ -29,7 +32,7 @@ function getLeafFields(fields, result = []) {
     fields.forEach(field => {
         const isComplex = (field.children && field.children.length > 0) || field.is_choice;
         if (!isComplex) {
-            result.push({ name: field.name, path: field.path });
+            result.push({ name: field.name, path: field.path, required: field.required });
         }
         if (field.children && field.children.length > 0) {
             getLeafFields(field.children, result);
@@ -41,6 +44,58 @@ function getLeafFields(fields, result = []) {
         }
     });
     return result;
+}
+
+/**
+ * Returns paths of required fields that have not been mapped and are not covered by an override.
+ */
+function getMissingRequiredFields(appState) {
+    const allLeaf = getLeafFields(appState.schemaFields || []);
+    const mappedPaths = new Set(Object.keys(appState.mappings));
+    return allLeaf
+        .filter(f => {
+            if (!f.required || HARDCODED_FIELDS.has(f.name)) return false;
+            if (mappedPaths.has(f.path)) return false;
+            const override = appState.advancedOverrides[f.path];
+            if (override && override.value && override.value.trim() !== '') return false;
+            return true;
+        })
+        .map(f => f.path);
+}
+
+/**
+ * Show a modal listing missing required fields.
+ * Resolves true if the user chooses to generate anyway, false to go back.
+ */
+function showRequiredFieldsModal(missingFields) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('required-fields-modal');
+        const list = document.getElementById('missing-fields-list');
+        const goBackBtn = document.getElementById('modal-go-back-btn');
+        const overrideBtn = document.getElementById('modal-override-btn');
+
+        list.innerHTML = '';
+        missingFields.forEach(name => {
+            const li = document.createElement('li');
+            li.textContent = name;
+            list.appendChild(li);
+        });
+
+        modal.classList.remove('hidden');
+
+        const close = (result) => {
+            modal.classList.add('hidden');
+            goBackBtn.removeEventListener('click', onGoBack);
+            overrideBtn.removeEventListener('click', onOverride);
+            resolve(result);
+        };
+
+        const onGoBack = () => close(false);
+        const onOverride = () => close(true);
+
+        goBackBtn.addEventListener('click', onGoBack);
+        overrideBtn.addEventListener('click', onOverride);
+    });
 }
 
 /**
@@ -253,6 +308,18 @@ export async function generateXml(appState, elements) {
     if (!appState.fileId || !appState.mappingId) {
         window.showError('Please upload a file and create a mapping first');
         return;
+    }
+
+    const rawMissing = appState.validationResults?.required_fields_missing?.length > 0
+        ? appState.validationResults.required_fields_missing
+        : getMissingRequiredFields(appState);
+    const missingRequired = rawMissing.filter(path => {
+        const override = appState.advancedOverrides[path];
+        return !(override && override.value && override.value.trim() !== '');
+    });
+    if (missingRequired.length > 0) {
+        const override = await showRequiredFieldsModal(missingRequired);
+        if (!override) return;
     }
 
     window.showLoading('Generating XML output...');

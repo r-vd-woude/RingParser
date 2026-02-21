@@ -12,6 +12,24 @@ from backend.utils.file_handler import prune_directory
 from backend.utils.ring_number import format_ring_number
 
 
+def _get_leaf_paths(fields) -> list[str]:
+    """Flatten schema fields to leaf (non-complex) paths, mirroring frontend getLeafFields."""
+    result = []
+    for field in fields:
+        is_complex = bool(field.children) or field.is_choice
+        if not is_complex:
+            result.append(field.path)
+        if field.children:
+            result.extend(_get_leaf_paths(field.children))
+        if field.is_choice and field.choice_options:
+            for option in field.choice_options:
+                if option.name == "ProjectIDRingerNumber":
+                    continue
+                if option.fields:
+                    result.extend(_get_leaf_paths(option.fields))
+    return result
+
+
 class XMLGenerator:
     """Generator for XML output from mapped data"""
 
@@ -42,6 +60,7 @@ class XMLGenerator:
         column_to_target = {
             m.source_column: m.target_path for m in mapping_config.mappings
         }
+        schema_leaf_paths = _get_leaf_paths(schema.fields)
 
         chunks = [
             data_rows[i : i + XML_CHUNK_SIZE]
@@ -52,7 +71,7 @@ class XMLGenerator:
 
         if len(chunks) == 1:
             file_path = self._generate_chunk(
-                chunks[0], headers, column_to_target, xml_id, advanced_overrides
+                chunks[0], headers, column_to_target, xml_id, advanced_overrides, schema_leaf_paths
             )
             prune_directory(OUTPUT_DIR)
             return xml_id, file_path, 1
@@ -62,7 +81,7 @@ class XMLGenerator:
         for i, chunk in enumerate(chunks):
             temp_id = str(uuid.uuid4())
             temp_path = self._generate_chunk(
-                chunk, headers, column_to_target, temp_id, advanced_overrides
+                chunk, headers, column_to_target, temp_id, advanced_overrides, schema_leaf_paths
             )
             temp_paths.append(temp_path)
 
@@ -82,6 +101,7 @@ class XMLGenerator:
         column_to_target: Dict[str, str],
         chunk_id: str,
         advanced_overrides: Optional[List[Any]] = None,
+        schema_leaf_paths: Optional[List[str]] = None,
     ) -> Path:
         """Generate a single XML file from a chunk of rows."""
         root = etree.Element("MyBulk")
@@ -91,7 +111,7 @@ class XMLGenerator:
 
         for row in data_rows:
             capture = self._create_capture_element(
-                row, headers, column_to_target, header_idx, override_map
+                row, headers, column_to_target, header_idx, override_map, schema_leaf_paths
             )
             root.append(capture)
 
@@ -112,6 +132,7 @@ class XMLGenerator:
         column_to_target: Dict[str, str],
         header_idx: Dict[str, int],
         override_map: Dict[str, Any],
+        schema_leaf_paths: Optional[List[str]] = None,
     ) -> etree.Element:
         """Create a Capture element from a data row"""
         capture = etree.Element("Capture")
@@ -154,6 +175,30 @@ class XMLGenerator:
                 value = format_ring_number(value)
 
             field_data[target_path] = value
+
+        # Fill in schema fields that were not mapped — emit empty elements so every
+        # field always has a line in the XML output. Override values are applied if set.
+        if schema_leaf_paths:
+            for path in schema_leaf_paths:
+                # Hardcoded fields are already written above — skip to avoid duplicates
+                if path.split(".")[-1] in HARDCODED_FIELD_NAMES:
+                    continue
+                if path in field_data:
+                    continue
+                col_override = override_map.get(path)
+                if col_override is not None:
+                    if col_override.source_column and col_override.source_column in header_idx:
+                        v = str(row[header_idx[col_override.source_column]]).strip()
+                        value = format_ring_number(v) if path.endswith("RingNumber") else v
+                    elif col_override.static_value is not None:
+                        value = col_override.static_value
+                        if path.endswith("RingNumber"):
+                            value = format_ring_number(value)
+                    else:
+                        value = ""
+                else:
+                    value = ""
+                field_data[path] = value
 
         for target_path, value in sorted(field_data.items()):
             self._add_field_to_element(capture, target_path, value)

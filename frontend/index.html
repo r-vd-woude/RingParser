@@ -187,6 +187,30 @@
         <p id="loading-message">Loading...</p>
     </div>
 
+    <!-- General notification modal -->
+    <div id="notification-modal" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <h3 id="notification-modal-title" class="modal-title"></h3>
+            <p id="notification-modal-message" class="modal-subtitle"></p>
+            <div class="modal-actions">
+                <button id="notification-modal-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required fields warning modal -->
+    <div id="required-fields-modal" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <h3 class="modal-title">Not all required fields are mapped</h3>
+            <p class="modal-subtitle">The following required fields have not been mapped:</p>
+            <ul id="missing-fields-list" class="missing-fields-list"></ul>
+            <div class="modal-actions">
+                <button id="modal-go-back-btn" class="btn btn-secondary">Go back and fix</button>
+                <button id="modal-override-btn" class="btn btn-warning">Generate anyway</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="/js/app.js" type="module"></script>
 </body>
