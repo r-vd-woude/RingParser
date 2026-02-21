@@ -168,7 +168,7 @@ Configuration settings are in [config.py](backend/config.py):
 
 ## XSD Schema
 
-The application uses the "Griel bulkupload XSD schema" [bulkimportnew.xsd.xml](data/format/bulkimportnew.xsd.xml).
+The application uses the "Griel bulkupload XSD schema" [bulkimportnew.xsd.xml](data/format/griel_bulkupload.xml).
 
 Data needs to be entered in the EURING standard format [EURING2000 Exchange Code](https://euring.org/files/documents/E2020ExchangeCodeV202.pdf)
 
