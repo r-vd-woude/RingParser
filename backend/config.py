@@ -1,5 +1,11 @@
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 from backend.services.parser_registry import supported_extensions
+
+# Load a .env file if present (no-op when the file is absent, e.g. in Docker
+# where env vars are injected directly by the runtime).
+load_dotenv()
 
 
 # Base directory
@@ -12,32 +18,38 @@ OUTPUT_DIR = DATA_DIR / "outputs"
 FORMAT_DIR = DATA_DIR / "format"
 
 # File upload settings
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
-MAX_UPLOAD_SIZE_SCHEMA = 252 * 1024  # 252KB
+MAX_UPLOAD_SIZE = int(
+    float(os.getenv("MAX_UPLOAD_SIZE", "10")) * 1024 * 1024
+)  # env var in MB, default 10
+MAX_UPLOAD_SIZE_SCHEMA = int(
+    float(os.getenv("MAX_UPLOAD_SIZE_SCHEMA", "256")) * 1024
+)  # env var in KB, default 256
 
 # Derived from the parser registry — add new parsers there, not here
 ALLOWED_EXTENSIONS = supported_extensions()
 
 # Server settings
-HOST = "127.0.0.1"
-PORT = 8000
-DEBUG = False
+HOST = os.getenv("HOST", "127.0.0.1")
+PORT = int(os.getenv("PORT", "8000"))
+DEBUG = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes")
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # XML generation settings
-XML_CHUNK_SIZE = 1000  # Max rows per XML file
-MAX_DATA_ROWS = 10_000  # Max data rows accepted from any uploaded file
+XML_CHUNK_SIZE = int(os.getenv("XML_CHUNK_SIZE", "1000"))  # Max rows per XML file
+MAX_DATA_ROWS = int(
+    os.getenv("MAX_DATA_ROWS", "10000")
+)  # Max data rows accepted from any uploaded file
 
 # File retention — oldest files are deleted once this limit is exceeded (FIFO)
-MAX_RETAINED_FILES = 50
+MAX_RETAINED_FILES = int(os.getenv("MAX_RETAINED_FILES", "50"))
 
 # API limiter settings
-UPLOAD_LIMIT = "5/minute"  # Limit to 5 uploads per minute per IP
-DOWNLOAD_LIMIT = "5/minute"  # Limit to 20 downloads per minute per IP
-MAPPING_LIMIT = "100/minute"  # Limit to 100 mapping requests per minute per IP
+UPLOAD_LIMIT = os.getenv("UPLOAD_LIMIT", "5/minute")
+DOWNLOAD_LIMIT = os.getenv("DOWNLOAD_LIMIT", "5/minute")
+MAPPING_LIMIT = os.getenv("MAPPING_LIMIT", "100/minute")
 
 # Fields hardcoded in the XML generator — maps field name to its default value.
 # Add new fields here; both the generator and validator derive their behaviour from this.
@@ -49,12 +61,11 @@ HARDCODED_FIELD_NAMES: dict[str, str | None] = {
 }
 
 # Settings for CORS
-CORS_ORIGINS = [
-    "*"
-]  # Allow requests from any origin (for local development; restrict in production)
-CORS_CREDENTIALS = True  # Allow cookies and credentials in requests
-CORS_METHODS = ["*"]  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
-CORS_HEADERS = ["*"]  # Allow all custom headers
+# CORS_ORIGINS accepts a comma-separated list
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+CORS_CREDENTIALS = os.getenv("CORS_CREDENTIALS", "true").lower() in ("true", "1", "yes")
+CORS_METHODS = os.getenv("CORS_METHODS", "GET,POST").split(",")  # only methods the API actually uses
+CORS_HEADERS = os.getenv("CORS_HEADERS", "Content-Type").split(",")  # only headers the API actually needs
 
 # Domain-specific synonyms for (bird ringing data)
 SYNONYMS = {

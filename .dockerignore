@@ -1,0 +1,35 @@
+# Version control
+.git
+.gitignore
+
+# Virtual environment
+.venv
+
+# Python byte-code caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Test artefacts
+.pytest_cache
+*.pytest_cache
+
+# Editor / IDE files
+*.code-workspace
+.vscode
+.idea
+
+# Documentation
+docs
+
+# Runtime-generated data
+data/uploads/*
+data/outputs/*
+# Keep the .gitkeep placeholders so the directories exist inside the image
+!data/uploads/.gitkeep
+!data/outputs/.gitkeep
+
+# OS noise
+.DS_Store
+Thumbs.db

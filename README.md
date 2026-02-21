@@ -70,7 +70,7 @@ uv venv .venv
 uv pip install -r requirements.txt
 ```
 
-## Running the Application
+## Running the application natively
 
 From the project root directory:
 
@@ -83,6 +83,56 @@ The application will start on http://localhost:8000
 - Web Interface: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 - API Base URL: http://localhost:8000/api
+
+## Building and running the Docker image
+
+### Building
+
+Build the image using `docker build -t ringparser:latest .`
+
+### Run
+
+`docker run -d \
+ --name ringparser \
+ -p 8000:8000 \
+ -v ./data/uploads:/app/data/uploads \
+ -v ./data/outputs:/app/data/outputs \
+ ringparser:latest`
+
+Or use the included compose file:
+
+`docker compose up -d`
+
+### Docker environmental parameters
+
+The following environmental variables can be passed to the Docker image:
+
+#### Upload and download restrictions
+
+- MAX_UPLOAD_SIZE: numeric,the maximum allowed upload size of file to be parsed,in MB (default: 10MB)
+- MAX_UPLOAD_SIZE_SCHEMA: numeric maximum allowed upload size of a custom schema, in KB (default: 256KB)
+- XML_CHUNK_SIZE: integer, maximum number of records in a generated XML file (default: 1000)
+- MAX_DATA_ROWS: integer, maximum amount of rows allowed in the uploaded files to be parsed, used to prevent XLSX/XML zip bombing (default: 10.000)
+- MAX_RETAINED_FILES: how many uploads and downloads should be kept, removing oldest first (default: 50)
+
+#### Network and debug settings
+
+- HOST: string, interface to which we bind the application
+- PORT: string, port to which the application is bound
+- DEBUG: string, enable debug, true or false (default: false)
+
+#### API limits
+
+- UPLOAD_LIMIT: string, API limit for uploading files (default: "5/minute")
+- DOWNLOAD_LIMIT: string, API limit for downloading files (default: "5/minute")
+- MAPPING_LIMIT: string, API limit for how many mapping actions users are allowed to do (default: "100/minute")
+
+#### CORS settings
+
+- CORS_ORIGINS: string, what domains are allowed to talk to the API from a browser (default: \* = all) set to your domain
+- CORS_CREDENTIALS: string, allow credentials and cookies (default: true)
+- CORS_METHODS: list, what API methods are allowed (default: "GET,POST")
+- CORS_HEADERS: string, you can add custom headers here (default: "Content-Type")
 
 ## Supported files
 
