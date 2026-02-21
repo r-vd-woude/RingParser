@@ -2,13 +2,16 @@
 FROM python:3.14-alpine
 
 # System libraries 
-
-RUN apk add --no-cache \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
     libxml2 \
     libxslt
 
-# UV installation 
+# UV installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+# Remove pip since we are using UV
+RUN pip uninstall -y pip
 
 # Working directory
 WORKDIR /app
