@@ -85,12 +85,10 @@ export async function autoMapFields(appState, elements) {
     const data = await response.json();
     console.log('Mapping suggestions:', data);
 
-    // Store mappings keyed by target_path (skip biometrics — user opts in manually;
-    // skip ProjectIDRingerNumber — only ActingUserProjectID is used)
+    // Backend already excludes Biometrics (exclude_biometrics defaults to true)
+    // and ProjectIDRingerNumber — no client-side filtering needed.
     appState.mappings = {};
     data.suggestions.forEach(suggestion => {
-        if (suggestion.target_path.includes('Biometrics')) return;
-        if (suggestion.target_path.includes('ProjectIDRingerNumber')) return;
         appState.mappings[suggestion.target_path] = {
             source_column: suggestion.source_column,
             target_name: suggestion.target_name,
@@ -140,16 +138,16 @@ export function updateMappingDisplay(appState, elements) {
     });
 
     // Biometrics — add toggle button to the right in mapping-controls
+    let biometricsToggleBtn = null;
     if (bioFields.length > 0) {
         // Remove any existing toggle button
         const existing = elements.mappingControls.querySelector('.biometrics-toggle');
         if (existing) existing.remove();
 
-        const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'btn btn-secondary biometrics-toggle' + (appState.biometricsExpanded ? ' active' : '');
-        toggleBtn.textContent = 'Add biometric data';
-        elements.mappingControls.appendChild(toggleBtn);
-        elements.mappingControls.appendChild(elements.mappingStatus); // Move status after the toggle
+        biometricsToggleBtn = document.createElement('button');
+        biometricsToggleBtn.className = 'btn btn-secondary biometrics-toggle' + (appState.biometricsExpanded ? ' active' : '');
+        biometricsToggleBtn.textContent = 'Add biometric data';
+        biometricsToggleBtn.style.width = '100%';
 
         // Populate the dedicated biometrics field list
         elements.biometricsFields.innerHTML = '';
@@ -161,12 +159,55 @@ export function updateMappingDisplay(appState, elements) {
 
         elements.biometricsContainer.classList.toggle('hidden', !appState.biometricsExpanded);
 
-        toggleBtn.addEventListener('click', () => {
+        biometricsToggleBtn.addEventListener('click', () => {
             appState.biometricsExpanded = !appState.biometricsExpanded;
             elements.biometricsContainer.classList.toggle('hidden', !appState.biometricsExpanded);
-            toggleBtn.classList.toggle('active', appState.biometricsExpanded);
+            biometricsToggleBtn.classList.toggle('active', appState.biometricsExpanded);
             updateMappingStatus(appState, elements);
         });
+    }
+
+    elements.mappingControls.appendChild(elements.mappingStatus);
+
+    // --- Date format selector (always visible, below the mapping status) ---
+    const existingDateFormat = elements.mappingControls.querySelector('.date-format-selector');
+    if (existingDateFormat) existingDateFormat.remove();
+
+    const dateFormatDiv = document.createElement('div');
+    dateFormatDiv.className = 'advanced-field date-format-selector';
+
+    const dateFormatLabel = document.createElement('div');
+    dateFormatLabel.className = 'advanced-field-name';
+    dateFormatLabel.textContent = 'Date format';
+    dateFormatDiv.appendChild(dateFormatLabel);
+
+    const dateFormatControls = document.createElement('div');
+    dateFormatControls.className = 'advanced-field-controls';
+
+    [
+        { value: 'ISO',      label: 'YYYY-MM-DD (ISO)' },
+        { value: 'DDMMYYYY', label: 'DDMMYYYY (EURING)' },
+    ].forEach(({ value, label }) => {
+        const lbl = document.createElement('label');
+        lbl.className = 'advanced-option-label';
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'date-format-mapping';
+        radio.value = value;
+        radio.checked = (appState.dateFormat || 'ISO') === value;
+        radio.addEventListener('change', () => { appState.dateFormat = value; });
+
+        lbl.append(radio, ` ${label}`);
+        dateFormatControls.appendChild(lbl);
+    });
+
+    dateFormatDiv.appendChild(dateFormatControls);
+    elements.mappingControls.appendChild(dateFormatDiv);
+
+    // Biometrics toggle is last — just above the grey separator line
+    if (biometricsToggleBtn) {
+        elements.mappingControls.appendChild(biometricsToggleBtn);
     }
 
     updateMappingStatus(appState, elements);

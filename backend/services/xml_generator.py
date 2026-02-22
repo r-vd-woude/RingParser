@@ -10,6 +10,7 @@ from backend.models.schema_model import XSDSchema
 from backend.config import OUTPUT_DIR, XML_CHUNK_SIZE, HARDCODED_FIELD_NAMES
 from backend.utils.file_handler import prune_directory
 from backend.utils.ring_number import format_ring_number
+from backend.utils.unit_conversion import normalize_date, normalize_coordinate
 
 
 def _get_leaf_paths(fields) -> list[str]:
@@ -30,6 +31,24 @@ def _get_leaf_paths(fields) -> list[str]:
     return result
 
 
+def _normalize_value(target_path: str, value: str, date_format: str = "ISO") -> str:
+    """Apply field-type-specific normalisation based on the target path.
+
+    - Fields ending in ``RingNumber``  → ring-number formatter
+    - Fields ending in ``Latitude`` or ``Longitude`` → decimal-degree conversion
+      (auto-detects DMS input such as ``52°30'15.5"N``)
+    - Fields ending in ``Date`` → date conversion; output format controlled by
+      ``date_format``: ``"ISO"`` → YYYY-MM-DD, ``"DDMMYYYY"`` → EURING format
+    """
+    if target_path.endswith("RingNumber"):
+        return format_ring_number(value)
+    if target_path.endswith(("Latitude", "Longitude")):
+        return normalize_coordinate(value)
+    if target_path.endswith("Date"):
+        return normalize_date(value, output_format=date_format)
+    return value
+
+
 class XMLGenerator:
     """Generator for XML output from mapped data"""
 
@@ -43,6 +62,7 @@ class XMLGenerator:
         mapping_config: MappingConfiguration,
         schema: XSDSchema,
         advanced_overrides: Optional[List[Any]] = None,
+        date_format: str = "ISO",
     ) -> tuple[str, Path, int]:
         """
         Generate XML output from mapped data. Automatically splits into chunks
@@ -71,7 +91,7 @@ class XMLGenerator:
 
         if len(chunks) == 1:
             file_path = self._generate_chunk(
-                chunks[0], headers, column_to_target, xml_id, advanced_overrides, schema_leaf_paths
+                chunks[0], headers, column_to_target, xml_id, advanced_overrides, schema_leaf_paths, date_format
             )
             prune_directory(OUTPUT_DIR)
             return xml_id, file_path, 1
@@ -81,7 +101,7 @@ class XMLGenerator:
         for i, chunk in enumerate(chunks):
             temp_id = str(uuid.uuid4())
             temp_path = self._generate_chunk(
-                chunk, headers, column_to_target, temp_id, advanced_overrides, schema_leaf_paths
+                chunk, headers, column_to_target, temp_id, advanced_overrides, schema_leaf_paths, date_format
             )
             temp_paths.append(temp_path)
 
@@ -102,6 +122,7 @@ class XMLGenerator:
         chunk_id: str,
         advanced_overrides: Optional[List[Any]] = None,
         schema_leaf_paths: Optional[List[str]] = None,
+        date_format: str = "ISO",
     ) -> Path:
         """Generate a single XML file from a chunk of rows."""
         root = etree.Element("MyBulk")
@@ -111,7 +132,7 @@ class XMLGenerator:
 
         for row in data_rows:
             capture = self._create_capture_element(
-                row, headers, column_to_target, header_idx, override_map, schema_leaf_paths
+                row, headers, column_to_target, header_idx, override_map, schema_leaf_paths, date_format
             )
             root.append(capture)
 
@@ -133,6 +154,7 @@ class XMLGenerator:
         header_idx: Dict[str, int],
         override_map: Dict[str, Any],
         schema_leaf_paths: Optional[List[str]] = None,
+        date_format: str = "ISO",
     ) -> etree.Element:
         """Create a Capture element from a data row"""
         capture = etree.Element("Capture")
@@ -148,14 +170,19 @@ class XMLGenerator:
                 return ov.static_value
             return default
 
+        # Build a lookup: leaf name → full schema path, used to place hardcoded
+        # fields at the correct position in the schema-ordered output below.
+        leaf_to_path = {p.split(".")[-1]: p for p in (schema_leaf_paths or [])}
+
+        field_data = {}
+
+        # Add hardcoded fields into field_data so they participate in schema-order sorting.
         for field_name, default_value in HARDCODED_FIELD_NAMES.items():
             if default_value == "set_to_today":
                 default_value = date.today().strftime("%Y-%m-%d")
-            etree.SubElement(capture, field_name).text = resolve(
-                field_name, default_value
-            )
+            full_path = leaf_to_path.get(field_name, field_name)
+            field_data[full_path] = resolve(field_name, default_value)
 
-        field_data = {}
         for col_idx, header in enumerate(headers):
             if header not in column_to_target:
                 continue
@@ -171,8 +198,7 @@ class XMLGenerator:
                 if not value:
                     continue
 
-            if target_path.endswith("RingNumber"):
-                value = format_ring_number(value)
+            value = _normalize_value(target_path, value, date_format)
 
             field_data[target_path] = value
 
@@ -189,18 +215,27 @@ class XMLGenerator:
                 if col_override is not None:
                     if col_override.source_column and col_override.source_column in header_idx:
                         v = str(row[header_idx[col_override.source_column]]).strip()
-                        value = format_ring_number(v) if path.endswith("RingNumber") else v
+                        value = _normalize_value(path, v, date_format)
                     elif col_override.static_value is not None:
-                        value = col_override.static_value
-                        if path.endswith("RingNumber"):
-                            value = format_ring_number(value)
+                        value = _normalize_value(path, col_override.static_value, date_format)
                     else:
                         value = ""
                 else:
                     value = ""
                 field_data[path] = value
 
-        for target_path, value in sorted(field_data.items()):
+        # Emit fields in schema-defined sequence order; fall back to alphabetical
+        # if no schema is available.
+        if schema_leaf_paths:
+            path_order = {path: i for i, path in enumerate(schema_leaf_paths)}
+            ordered = sorted(
+                field_data.items(),
+                key=lambda kv: path_order.get(kv[0], len(schema_leaf_paths)),
+            )
+        else:
+            ordered = sorted(field_data.items())
+
+        for target_path, value in ordered:
             self._add_field_to_element(capture, target_path, value)
 
         return capture

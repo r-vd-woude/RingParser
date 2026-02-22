@@ -19,7 +19,8 @@ const appState = {
     validationResults: null,
     generatedXmlId: null,
     supportedExtensions: [],  // populated from /api/parsers on startup
-    advancedOverrides: {}     // keyed by field name, set by the Advanced panel
+    advancedOverrides: {},    // keyed by field name, set by the Advanced panel
+    dateFormat: 'ISO'         // 'ISO' = YYYY-MM-DD, 'DDMMYYYY' = EURING format
 };
 
 // DOM elements

@@ -24,6 +24,8 @@ services:
       UPLOAD_LIMIT: "5/minute"
       DOWNLOAD_LIMIT: "5/minute"
       MAPPING_LIMIT: "100/minute"
+      INFO_LIMIT: "10/minute"
+      PARSE_LIMIT: "5/minute"
       # CORS — restrict to your domain in production
       CORS_ORIGINS: "*"
       CORS_CREDENTIALS: "true"

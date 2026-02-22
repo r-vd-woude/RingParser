@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -54,3 +54,30 @@ class CreateMappingResponse(BaseModel):
     total_mappings: int
     required_fields_mapped: int
     required_fields_total: int
+
+
+# ---------------------------------------------------------------------------
+# Mapping export / import
+# ---------------------------------------------------------------------------
+
+class MappingExportEntry(BaseModel):
+    """A single field entry in the portable export format."""
+    source_column: str
+    target_name: str
+
+
+class MappingExportData(BaseModel):
+    """Portable mapping export format — matches what the browser Save Mapping button produces.
+
+    ``mappings`` keys are XSD target paths, e.g.
+    ``"MyBulk.Capture.Species": {"source_column": "Species", "target_name": "Species"}``
+    """
+    schema_id: Optional[str] = None
+    mappings: Dict[str, MappingExportEntry]
+
+
+class ImportMappingRequest(BaseModel):
+    """Request to import a previously exported mapping and associate it with an uploaded file."""
+    file_id: str
+    file_type: str
+    mapping: MappingExportData

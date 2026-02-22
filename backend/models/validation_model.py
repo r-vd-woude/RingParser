@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from enum import Enum
+from backend.models.xml_model import AdvancedOverride
 
 
 class ValidationSeverity(str, Enum):
@@ -37,3 +38,4 @@ class ValidateDataRequest(BaseModel):
     file_type: str
     mapping_id: str
     schema_id: Optional[str] = None
+    advanced_overrides: List[AdvancedOverride] = Field(default_factory=list)

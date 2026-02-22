@@ -7,8 +7,6 @@ const ADVANCED_FIELDS = [
     { name: 'EURINGCodeIdentifier', default: '4' },
 ];
 
-// Fields handled automatically — excluded from the required-field check
-const HARDCODED_FIELDS = new Set(['Modus', 'EURINGCodeIdentifier', 'ReportingDate']);
 
 /**
  * Setup XML generator event listeners
@@ -26,7 +24,8 @@ export function setupXmlGenerator(appState, elements) {
 }
 
 /**
- * Flatten schema fields to leaf nodes only (mirrors column-mapper.js logic).
+ * Flatten schema fields to leaf nodes only.
+ * Used by buildAdvancedPanel to populate the XSD field dropdown.
  */
 function getLeafFields(fields, result = []) {
     fields.forEach(field => {
@@ -39,28 +38,12 @@ function getLeafFields(fields, result = []) {
         }
         if (field.is_choice && field.choice_options) {
             field.choice_options.forEach(option => {
+                if (option.name === 'ProjectIDRingerNumber') return;
                 if (option.fields) getLeafFields(option.fields, result);
             });
         }
     });
     return result;
-}
-
-/**
- * Returns paths of required fields that have not been mapped and are not covered by an override.
- */
-function getMissingRequiredFields(appState) {
-    const allLeaf = getLeafFields(appState.schemaFields || []);
-    const mappedPaths = new Set(Object.keys(appState.mappings));
-    return allLeaf
-        .filter(f => {
-            if (!f.required || HARDCODED_FIELDS.has(f.name)) return false;
-            if (mappedPaths.has(f.path)) return false;
-            const override = appState.advancedOverrides[f.path];
-            if (override && override.value && override.value.trim() !== '') return false;
-            return true;
-        })
-        .map(f => f.path);
 }
 
 /**
@@ -310,9 +293,10 @@ export async function generateXml(appState, elements) {
         return;
     }
 
-    const rawMissing = appState.validationResults?.required_fields_missing?.length > 0
-        ? appState.validationResults.required_fields_missing
-        : getMissingRequiredFields(appState);
+    // Use the required_fields_missing list from the last validate run.
+    // The backend already accounts for choice options and hardcoded fields;
+    // we still filter client-side for overrides set after the last validate.
+    const rawMissing = appState.validationResults?.required_fields_missing || [];
     const missingRequired = rawMissing.filter(path => {
         const override = appState.advancedOverrides[path];
         return !(override && override.value && override.value.trim() !== '');
@@ -334,6 +318,7 @@ export async function generateXml(appState, elements) {
                 file_id: appState.fileId,
                 file_type: appState.fileType,
                 mapping_id: appState.mappingId,
+                date_format: appState.dateFormat || 'ISO',
                 advanced_overrides: buildOverridesPayload(appState.advancedOverrides)
             })
         });

@@ -50,6 +50,8 @@ MAX_RETAINED_FILES = int(os.getenv("MAX_RETAINED_FILES", "50"))
 UPLOAD_LIMIT = os.getenv("UPLOAD_LIMIT", "5/minute")
 DOWNLOAD_LIMIT = os.getenv("DOWNLOAD_LIMIT", "5/minute")
 MAPPING_LIMIT = os.getenv("MAPPING_LIMIT", "100/minute")
+PARSE_LIMIT = os.getenv("PARSE_LIMIT", "5/minute")  # for the main parsing endpoint
+INFO_LIMIT = os.getenv("INFO_LIMIT", "10/minute")  # for health, parser and schema info
 
 # Fields hardcoded in the XML generator — maps field name to its default value.
 # Add new fields here; both the generator and validator derive their behaviour from this.
@@ -64,8 +66,12 @@ HARDCODED_FIELD_NAMES: dict[str, str | None] = {
 # CORS_ORIGINS accepts a comma-separated list
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 CORS_CREDENTIALS = os.getenv("CORS_CREDENTIALS", "true").lower() in ("true", "1", "yes")
-CORS_METHODS = os.getenv("CORS_METHODS", "GET,POST").split(",")  # only methods the API actually uses
-CORS_HEADERS = os.getenv("CORS_HEADERS", "Content-Type").split(",")  # only headers the API actually needs
+CORS_METHODS = os.getenv("CORS_METHODS", "GET,POST").split(
+    ","
+)  # only methods the API actually uses
+CORS_HEADERS = os.getenv("CORS_HEADERS", "Content-Type").split(
+    ","
+)  # only headers the API actually needs
 
 # Domain-specific synonyms for (bird ringing data)
 SYNONYMS = {

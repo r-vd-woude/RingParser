@@ -19,6 +19,7 @@ class GenerateXMLRequest(BaseModel):
     file_type: str
     mapping_id: str
     schema_id: Optional[str] = None
+    date_format: str = "ISO"  # "ISO" = YYYY-MM-DD, "DDMMYYYY" = EURING format
     advanced_overrides: List[AdvancedOverride] = []
 
 

@@ -10,6 +10,7 @@ from backend.models.validation_model import (
 )
 from backend.models.schema_model import XSDSchema, SchemaField, ConstraintType
 from backend.models.mapping_model import MappingConfiguration
+from backend.models.xml_model import AdvancedOverride
 from backend.config import HARDCODED_FIELD_NAMES
 from backend.utils.ring_number import format_ring_number
 
@@ -26,6 +27,7 @@ class Validator:
         headers: List[str],
         mapping_config: MappingConfiguration,
         schema: XSDSchema,
+        advanced_overrides: Optional[List[AdvancedOverride]] = None,
     ) -> ValidationResult:
         """
         Validate data rows against XSD schema using mapping configuration.
@@ -35,6 +37,8 @@ class Validator:
             headers: Column headers
             mapping_config: Mapping configuration
             schema: XSD schema
+            advanced_overrides: Optional field overrides (static values or column mappings)
+                                 used to determine which required fields are still missing.
 
         Returns:
             ValidationResult with validation messages
@@ -50,9 +54,9 @@ class Validator:
         # Build field lookup: path -> SchemaField
         field_lookup = self._build_field_lookup(schema.fields)
 
-        # Check required fields are mapped
+        # Check required fields are mapped (considering overrides)
         required_fields_missing = self._check_required_fields(
-            mapping_config, schema.fields
+            mapping_config, schema.fields, advanced_overrides
         )
 
         # Validate each row
@@ -140,22 +144,50 @@ class Validator:
         return lookup
 
     def _check_required_fields(
-        self, mapping_config: MappingConfiguration, fields: List[SchemaField]
+        self,
+        mapping_config: MappingConfiguration,
+        fields: List[SchemaField],
+        advanced_overrides: Optional[List[AdvancedOverride]] = None,
     ) -> List[str]:
-        """Check which required fields are not mapped"""
+        """Check which required fields are neither mapped nor covered by an override.
+
+        Also recurses into xs:choice options (skipping ProjectIDRingerNumber, which
+        is intentionally unused — only ActingUserProjectID is supported).
+        """
         mapped_paths = {m.target_path for m in mapping_config.mappings}
-        required_fields = []
+
+        # Build the set of paths that have a non-empty static override value.
+        overridden_paths: set = set()
+        if advanced_overrides:
+            for ov in advanced_overrides:
+                if ov.static_value and ov.static_value.strip():
+                    overridden_paths.add(ov.field_name)
+
+        required_fields: List[str] = []
 
         def check_fields(schema_fields):
             for field in schema_fields:
-                if field.required and field.path not in mapped_paths:
-                    # Skip complex types and fields that are hardcoded in the generator
+                if (
+                    field.required
+                    and field.path not in mapped_paths
+                    and field.path not in overridden_paths
+                ):
+                    # Skip complex types and fields handled by the generator
                     if not field.children and not field.is_choice:
                         if field.name not in HARDCODED_FIELD_NAMES:
                             required_fields.append(field.path)
 
                 if field.children:
                     check_fields(field.children)
+
+                # Recurse into xs:choice options; skip ProjectIDRingerNumber
+                # because the app only supports ActingUserProjectID.
+                if field.is_choice and field.choice_options:
+                    for option in field.choice_options:
+                        if option.name == "ProjectIDRingerNumber":
+                            continue
+                        if option.fields:
+                            check_fields(option.fields)
 
         check_fields(fields)
         return required_fields
