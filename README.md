@@ -84,15 +84,15 @@ The application will start on http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 - API Base URL: http://localhost:8000/api
 
-## Building and running the Docker image
+## Building and running the container image
 
 ### Building
 
-Build the image using `docker build -t ringparser:latest .`
+Build the image using `docker/podman build -t ringparser:latest .`
 
 ### Run
 
-`docker run -d \
+`docker/podman run -d \
  --name ringparser \
  -p 8000:8000 \
  -v ./data/uploads:/app/data/uploads \
