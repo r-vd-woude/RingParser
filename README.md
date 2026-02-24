@@ -1,4 +1,4 @@
-# Ring Parser - parsing
+# RingParser - parsing a variety of files to XML 
 
 A web application for mapping files to an XML Schema (XSD) and generating valid XML output based on the selected Schema.
 
