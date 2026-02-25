@@ -11,17 +11,8 @@ from typing import Dict, Any, Optional
 class SUBMITParser(BaseParser):
     """Parser for SUBMIT files, which are similar to CSV but with EURING codes as one of their columns."""
 
-    async def parse_file(self, file_path: Path) -> Dict[str, Any]:
-        """
-        Parse a SUBMIT file and extract column information.
-
-        Args:
-            file_path: Path to the SUBMIT file
-
-        Returns:
-            Dict containing columns, sample data, and metadata
-        """
-        content, encoding = await self._read_text_file(file_path)
+    def _parse_file_sync(self, file_path: Path) -> Dict[str, Any]:
+        content, encoding = self._read_text_file_sync(file_path)
         return self._parse_string(content, name=file_path.name, encoding=encoding)
 
     def _parse_string(self, content: str, name: str, encoding: str) -> Dict[str, Any]:

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import xmlschema
 
@@ -437,12 +438,13 @@ async def validate_mapping(request: Request, body: ValidateDataRequest):
 
         # Validate (pass overrides so required-field check accounts for them)
         validator = get_validator()
-        result = validator.validate_data(
-            data_rows=data_rows,
-            headers=headers,
-            mapping_config=mapping_config,
-            schema=schema,
-            advanced_overrides=body.advanced_overrides or None,
+        result = await asyncio.to_thread(
+            validator.validate_data,
+            data_rows,
+            headers,
+            mapping_config,
+            schema,
+            body.advanced_overrides or None,
         )
 
         return result
@@ -649,13 +651,14 @@ async def run_pipeline(
 
         # 6. Generate XML
         xml_gen = get_xml_generator()
-        xml_id, output_path, total_files = xml_gen.generate_xml(
-            data_rows=data_rows,
-            headers=headers,
-            mapping_config=mapping_config,
-            schema=schema,
-            advanced_overrides=overrides,
-            date_format=date_format,
+        xml_id, output_path, total_files = await asyncio.to_thread(
+            xml_gen.generate_xml,
+            data_rows,
+            headers,
+            mapping_config,
+            schema,
+            overrides,
+            date_format,
         )
 
         preview = xml_gen.get_xml_preview(output_path, lines=50)
@@ -723,13 +726,14 @@ async def generate_xml(request: Request, body: GenerateXMLRequest):
 
         # Generate XML
         xml_generator = get_xml_generator()
-        xml_id, output_path, total_files = xml_generator.generate_xml(
-            data_rows=data_rows,
-            headers=headers,
-            mapping_config=mapping_config,
-            schema=schema,
-            advanced_overrides=body.advanced_overrides,
-            date_format=body.date_format,
+        xml_id, output_path, total_files = await asyncio.to_thread(
+            xml_generator.generate_xml,
+            data_rows,
+            headers,
+            mapping_config,
+            schema,
+            body.advanced_overrides,
+            body.date_format,
         )
 
         # Get preview

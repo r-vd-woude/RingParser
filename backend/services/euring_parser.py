@@ -14,18 +14,8 @@ class EURINGParser(BaseParser):
     def __init__(self):
         pass
 
-    async def parse_file(self, file_path: Path) -> Dict[str, Any]:
-        """
-        Parse a .txt containing EURING Exchange codes.
-        Every new line should be its own code.
-
-        Args:
-            file_path: Path to the .txt file
-
-        Returns:
-            Dict containing columns, sample data, and metadata
-        """
-        content, _ = await self._read_text_file(file_path)
+    def _parse_file_sync(self, file_path: Path) -> Dict[str, Any]:
+        content, _ = self._read_text_file_sync(file_path)
         return self._parse_lines(content.splitlines(), name=file_path.name)
 
     # Make a method so we can reuse the parsing logic for both files and raw strings (this is done for SUBMIT files, which contain EURING codes as one of their columns)

@@ -1,4 +1,3 @@
-import asyncio
 from openpyxl import load_workbook
 from pathlib import Path
 from backend.utils.type_inference import _infer_column_types
@@ -12,17 +11,8 @@ class XLSXParser(BaseParser):
     def __init__(self):
         pass
 
-    async def parse_file(self, file_path: Path) -> Dict[str, Any]:
-        """
-        Parse an XLSX file and extract column information.
-
-        Args:
-            file_path: Path to the XLSX file
-
-        Returns:
-            Dict containing columns, sample data, and metadata
-        """
-        workbook = await asyncio.to_thread(load_workbook, filename=file_path, read_only=True)
+    def _parse_file_sync(self, file_path: Path) -> Dict[str, Any]:
+        workbook = load_workbook(filename=file_path, read_only=True)
         return self._parse_workbook(workbook, name=file_path.name)
 
     def parse_content(self, raw: bytes, name: str = "input.xlsx") -> Dict[str, Any]:

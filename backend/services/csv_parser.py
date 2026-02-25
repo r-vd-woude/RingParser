@@ -10,17 +10,8 @@ from backend.services.base_parser import BaseParser
 class CSVParser(BaseParser):
     """Parser for CSV files with automatic delimiter and encoding detection"""
 
-    async def parse_file(self, file_path: Path) -> Dict[str, Any]:
-        """
-        Parse a CSV file and extract column information.
-
-        Args:
-            file_path: Path to the CSV file
-
-        Returns:
-            Dict containing columns, sample data, and metadata
-        """
-        content, encoding = await self._read_text_file(file_path)
+    def _parse_file_sync(self, file_path: Path) -> Dict[str, Any]:
+        content, encoding = self._read_text_file_sync(file_path)
         return self._parse_string(content, name=file_path.name, encoding=encoding)
 
     def _parse_string(self, content: str, name: str, encoding: str) -> Dict[str, Any]:
@@ -33,9 +24,6 @@ class CSVParser(BaseParser):
 
         headers = rows[0]
         data_rows = rows[1:]
-        from backend.config import MAX_DATA_ROWS
-        if len(data_rows) > MAX_DATA_ROWS:
-            raise ValueError(f"File exceeds the maximum of {MAX_DATA_ROWS:,} data rows")
         sample_data = data_rows[:10]
         column_info = _infer_column_types(headers, data_rows)
 
