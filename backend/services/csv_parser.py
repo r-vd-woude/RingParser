@@ -1,6 +1,6 @@
 import csv
 import io
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from pathlib import Path
 from backend.utils.type_inference import _infer_column_types
 from backend.utils.encoding import _detect_delimiter
@@ -38,14 +38,3 @@ class CSVParser(BaseParser):
             "headers": headers,
         }
 
-
-# Global parser instance
-_csv_parser: Optional[CSVParser] = None
-
-
-def get_csv_parser() -> CSVParser:
-    """Get or create global CSV parser instance"""
-    global _csv_parser
-    if _csv_parser is None:
-        _csv_parser = CSVParser()
-    return _csv_parser

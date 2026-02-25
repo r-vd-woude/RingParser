@@ -5,7 +5,7 @@ from backend.utils.encoding import _detect_delimiter
 from backend.utils.type_inference import _infer_column_types
 from backend.services.base_parser import BaseParser
 from backend.services.euring_parser import EURINGParser
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 
 class SUBMITParser(BaseParser):
@@ -59,14 +59,3 @@ class SUBMITParser(BaseParser):
             "headers": merged_headers,
         }
 
-
-# Global parser instance
-_submit_parser: Optional[SUBMITParser] = None
-
-
-def get_submit_parser() -> SUBMITParser:
-    """Get or create global SUBMIT parser instance"""
-    global _submit_parser
-    if _submit_parser is None:
-        _submit_parser = SUBMITParser()
-    return _submit_parser

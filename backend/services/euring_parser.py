@@ -1,6 +1,6 @@
 from pathlib import Path
 from backend.utils.type_inference import _infer_column_types
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from euring import EuringRecord
 from datetime import datetime
 from backend.services.base_parser import BaseParser
@@ -100,14 +100,3 @@ class EURINGParser(BaseParser):
             "headers": headers,
         }
 
-
-# Global parser instance
-_euring_parser: Optional[EURINGParser] = None
-
-
-def get_euring_parser() -> EURINGParser:
-    """Get or create global XLSX parser instance"""
-    global _euring_parser
-    if _euring_parser is None:
-        _euring_parser = EURINGParser()
-    return _euring_parser

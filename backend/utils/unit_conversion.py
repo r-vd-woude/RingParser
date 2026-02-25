@@ -141,12 +141,3 @@ def dms_to_decimal(degrees_str: str) -> float:
         lon = -lon
 
     return {"lat": lat, "lon": lon}
-
-
-def strip_empty_fields(record: dict) -> dict:
-    filtered_fields = {}
-    for key, field in record["fields"].items():
-        if field["value"] != "":
-            filtered_fields[key] = field
-    record["fields"] = filtered_fields
-    return record

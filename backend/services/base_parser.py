@@ -2,8 +2,6 @@ import asyncio
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Any
-import aiofiles
-
 from backend.utils.encoding import _detect_encoding
 
 
@@ -21,13 +19,6 @@ class BaseParser(ABC):
     def _read_text_file_sync(self, file_path: Path) -> tuple[str, str]:
         """Read a text file synchronously, auto-detecting encoding. Returns (content, encoding)."""
         raw = file_path.read_bytes()
-        encoding = _detect_encoding(raw)
-        return raw.decode(encoding), encoding
-
-    async def _read_text_file(self, file_path: Path) -> tuple[str, str]:
-        """Read a text file asynchronously, auto-detecting encoding. Returns (content, encoding)."""
-        async with aiofiles.open(file_path, "rb") as f:
-            raw = await f.read()
         encoding = _detect_encoding(raw)
         return raw.decode(encoding), encoding
 

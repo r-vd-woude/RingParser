@@ -1,7 +1,7 @@
 from openpyxl import load_workbook
 from pathlib import Path
 from backend.utils.type_inference import _infer_column_types
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from backend.services.base_parser import BaseParser
 
 
@@ -14,21 +14,6 @@ class XLSXParser(BaseParser):
     def _parse_file_sync(self, file_path: Path) -> Dict[str, Any]:
         workbook = load_workbook(filename=file_path, read_only=True)
         return self._parse_workbook(workbook, name=file_path.name)
-
-    def parse_content(self, raw: bytes, name: str = "input.xlsx") -> Dict[str, Any]:
-        """
-        Parse raw XLSX bytes and extract column information.
-
-        Args:
-            raw: Bytes containing XLSX content
-            name: Optional filename to use in the result
-
-        Returns:
-            Dict containing columns, sample data, and metadata
-        """
-        import io
-        workbook = load_workbook(filename=io.BytesIO(raw), read_only=True)
-        return self._parse_workbook(workbook, name=name)
 
     def _parse_workbook(self, workbook, name: str) -> Dict[str, Any]:
         sheet = workbook.active
@@ -53,14 +38,3 @@ class XLSXParser(BaseParser):
             "headers": headers,
         }
 
-
-# Global parser instance
-_xlsx_parser: Optional[XLSXParser] = None
-
-
-def get_xlsx_parser() -> XLSXParser:
-    """Get or create global XLSX parser instance"""
-    global _xlsx_parser
-    if _xlsx_parser is None:
-        _xlsx_parser = XLSXParser()
-    return _xlsx_parser

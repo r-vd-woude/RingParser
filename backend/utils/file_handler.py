@@ -81,24 +81,6 @@ class FileHandler:
         return None
 
     @staticmethod
-    def delete_upload(file_id: str, file_type: str) -> bool:
-        """
-        Delete an uploaded file.
-
-        Args:
-            file_id: File ID
-            file_type: File extension
-
-        Returns:
-            True if deleted, False if not found
-        """
-        file_path = FileHandler.get_upload_path(file_id, file_type)
-        if file_path and file_path.exists():
-            file_path.unlink()
-            return True
-        return False
-
-    @staticmethod
     def get_file_type(filename: str) -> str:
         """Get file type from filename"""
         return Path(filename).suffix.lower().replace('.', '')
