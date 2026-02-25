@@ -67,7 +67,7 @@ uv venv .venv
 3. Install dependencies:
 
 ```bash
-uv pip install -r requirements.txt
+uv sync
 ```
 
 ## Running the application natively
@@ -101,7 +101,8 @@ Build the image using `docker/podman build -t ringparser:latest .`
 
 Or use the included compose file:
 
-`docker compose up -d`
+`docker compose up -d` or `podman compose up -d`
+
 
 ### Docker environmental parameters
 
